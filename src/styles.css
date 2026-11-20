@@ -73,6 +73,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .guess-name { min-width: 0; overflow-wrap: anywhere; }
 .hint-guess.wrong { color: #a4262c; }
 .hint-guess.correct { color: #356423; background: #f0f7ed; }
+.hint-guess.close { color: #785b0b; background: #fff8df; }
+.close-text { color: #785b0b; }
+.guess-result.close-badge { font-size: 11px; font-weight: 600; padding: 2px 6px; border: 1px solid #e8cf7d; border-radius: 3px; background: #fff0ba; }
 .hint-guess.skipped { color: #6a7580; }
 .guess-result { margin-left: auto; font-size: 19px; flex-shrink: 0; }
 
@@ -85,7 +88,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .input-shell input:focus-visible { outline: none; }
 .input-shell input::placeholder { color: #6e7c89; }
 .search-symbol { font-size: 27px; color: #6e8092; line-height: 1; }
-.selected-check { color: #4a7b32; font-size: 19px; }
 .game-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
 .portal-button { min-height: 40px; padding: 9px 18px; border: 1px solid #8a9cad; border-radius: 3px; background: white; font-size: 14px; font-weight: 600; color: #34495c; }
 .portal-button:hover { border-color: #0078d4; background: #f3f8fd; color: #0067b8; }
@@ -110,6 +112,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .result-grid { display: grid; grid-template-columns: repeat(5, 34px); justify-content: center; gap: 6px; margin: 18px 0; }
 .result-tile { display: block; height: 34px; border: 1px solid transparent; border-radius: 2px; font-size: 0; }
 .result-tile.correct { background: #6a9c51; }
+.result-tile.close { background: #d3ac32; }
 .result-tile.wrong { background: #c65a5d; }
 .result-tile.skipped { background: white; border-color: #a6b3bf; }
 .result-tile.unused { background: #435360; }
@@ -197,6 +200,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
   .game-actions .portal-button { font-size: 14px; }
   .game-actions .portal-button span { margin-left: 2px; }
   .menu-trigger { padding: 8px; }
+}
+@media (max-width: 620px), (pointer: coarse) {
+  .suggestions { top: auto; bottom: calc(100% + 4px); max-height: min(280px, var(--suggestion-space, 40dvh)); z-index: 30; }
 }
 @media (max-height: 700px) {
   .portal-app { padding-bottom: 12px; }

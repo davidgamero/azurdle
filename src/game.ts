@@ -49,19 +49,64 @@ export function makeAttempt(game: Game, id: string | null): Game {
   return { ...game, attempts: [...game.attempts, { id }] };
 }
 
+export function guessFeedback(answerId: string, guessId: string | null) {
+  if (guessId === null) return { state: 'skipped' as const, sharedCategories: [] as string[] };
+  const answer = byId.get(answerId), guess = byId.get(guessId);
+  const sharedCategories = answer && guess ? answer.categories.filter((category) => guess.categories.includes(category)) : [];
+  if (answerId === guessId) return { state: 'correct' as const, sharedCategories };
+  return { state: sharedCategories.length ? 'close' as const : 'wrong' as const, sharedCategories };
+}
+
 export function normalize(text: string): string {
   return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 }
+
+// Small typo tolerance, including adjacent transpositions ("funtcions").
+function editDistance(left: string, right: string): number {
+  const rows = Array.from({ length: left.length + 1 }, (_, i) => Array.from({ length: right.length + 1 }, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+  for (let i = 1; i <= left.length; i++) {
+    for (let j = 1; j <= right.length; j++) {
+      rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + Number(left[i - 1] !== right[j - 1]));
+      if (i > 1 && j > 1 && left[i - 1] === right[j - 2] && left[i - 2] === right[j - 1]) rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
+    }
+  }
+  return rows[left.length][right.length];
+}
+
+const searchIndex = services.map((service) => {
+  const names = [service.name, ...service.aliases].map(normalize);
+  return { service, names, text: names.join(' '), tokens: [...new Set(names.flatMap((name) => name.split(' ')))] };
+});
+
 export function searchServices(query: string, excluded: string[] = []): Service[] {
   const tokens = normalize(query).split(' ').filter(Boolean);
   const words = tokens.length > 1 ? tokens.filter((word) => word !== 'azure' && word !== 'microsoft') : tokens;
-  return services.filter((service) => !excluded.includes(service.id)).map((service) => {
-    const names = [service.name, ...service.aliases].map(normalize);
-    const text = names.join(' ');
-    const match = words.every((word) => text.includes(word));
-    const score = names.some((name) => name === normalize(query)) ? 0 : names.some((name) => name.replace(/^(azure|microsoft) /, '').startsWith(normalize(query))) ? 1 : 2;
-    return { service, match, score };
-  }).filter((result) => result.match).sort((a, b) => a.score - b.score || a.service.name.localeCompare(b.service.name)).map((result) => result.service);
+  const phrase = words.join(' ');
+  return searchIndex.filter(({ service }) => !excluded.includes(service.id)).map(({ service, names, text, tokens: candidateTokens }) => {
+    const plainNames = names.map((name) => name.replace(/^(azure|microsoft) /, ''));
+    if (names.includes(normalize(query)) || plainNames.includes(phrase)) return { service, score: 0 };
+    if (words.every((word) => text.includes(word))) {
+      const prefix = plainNames.find((name) => name.startsWith(phrase));
+      return { service, score: prefix ? 1 + (prefix.length - phrase.length) / 1000 : 2 };
+    }
+    let distance = 0;
+    for (const word of words) {
+      if (text.includes(word)) continue;
+      if (word.length < 4) return { service, score: Infinity };
+      const limit = word.length < 6 ? 1 : 2;
+      let best = Infinity;
+      for (const token of candidateTokens) {
+        // Compare both full words and prefixes so incomplete queries still work.
+        for (const length of new Set([token.length, word.length - 1, word.length, word.length + 1])) {
+          if (length > token.length || Math.abs(length - word.length) > limit) continue;
+          best = Math.min(best, editDistance(word, token.slice(0, length)));
+        }
+      }
+      if (best > limit) return { service, score: Infinity };
+      distance += best / word.length;
+    }
+    return { service, score: 3 + distance + plainNames[0].length / 10000 };
+  }).filter((result) => Number.isFinite(result.score)).sort((a, b) => a.score - b.score || a.service.name.localeCompare(b.service.name)).map((result) => result.service);
 }
 
 export const shortName = (service: Service) => service.name.replace(/^(Microsoft|Azure) /, '').replace(/\s*\([^)]*\)/g, '');
@@ -126,9 +171,14 @@ export function resultTiles(game: Game) {
   return Array.from({ length: MAX_ATTEMPTS }, (_, index) => {
     const attempt = game.attempts[index];
     if (!attempt) return { state: 'unused', emoji: '⬛', label: 'Unused' };
-    if (attempt.id === game.answerId) return { state: 'correct', emoji: '🟩', label: 'Correct' };
-    if (attempt.id === null) return { state: 'skipped', emoji: '⬜', label: 'Skipped' };
-    return { state: 'wrong', emoji: '🟥', label: 'Incorrect' };
+    const { state } = guessFeedback(game.answerId, attempt.id);
+    const tile = {
+      correct: { emoji: '🟩', label: 'Correct' },
+      close: { emoji: '🟨', label: 'Close — shared category' },
+      skipped: { emoji: '⬜', label: 'Skipped' },
+      wrong: { emoji: '🟥', label: 'Incorrect' },
+    }[state];
+    return { state, ...tile };
   });
 }
 

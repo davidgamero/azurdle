@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { byId, clueNames, clueText, dailyAnswer, EPOCH, DAY, getStats, isFinished, isWon, makeAttempt, readGame, readRecords, resultTiles, searchServices, services, shareText, utcDate } from '../src/game';
+import { byId, clueNames, clueText, dailyAnswer, EPOCH, DAY, getStats, guessFeedback, isFinished, isWon, makeAttempt, readGame, readRecords, resultTiles, searchServices, services, shareText, utcDate } from '../src/game';
 import pool from '../src/data/daily-pool.json' with { type: 'json' };
 
 test('daily schedule is UTC-based, deterministic, and does not repeat within a cycle', () => {
@@ -61,6 +61,25 @@ test('autocomplete supports abbreviations, aliases, flexible word order, and exc
   const id = searchServices('AKS')[0].id;
   assert.ok(searchServices('AKS', [id]).every((s) => s.id !== id));
   assert.equal(searchServices('zzzz-unreal-service').length, 0);
+  assert.equal(searchServices('funtcions')[0].name, 'Azure Functions');
+  assert.equal(searchServices('key vualt')[0].name, 'Azure Key Vault');
+  assert.equal(searchServices('contaner reg')[0].name, 'Azure Container Registry');
+  assert.equal(searchServices('kubernets')[0].name, 'Azure Kubernetes Service (AKS)');
+  assert.ok(searchServices('funtcions', ['azure-functions']).every((s) => s.id !== 'azure-functions'));
+});
+
+test('close guesses share official categories but still use an attempt without winning', () => {
+  const answerId = 'azure-container-apps';
+  const closeId = 'azure-functions';
+  assert.deepEqual(guessFeedback(answerId, closeId), { state: 'close', sharedCategories: ['Compute', 'Containers'] });
+  assert.equal(guessFeedback(answerId, answerId).state, 'correct');
+  assert.equal(guessFeedback(answerId, 'azure-key-vault').state, 'wrong');
+  assert.equal(guessFeedback(answerId, null).state, 'skipped');
+  let game = makeAttempt({ answerId, attempts: [] }, closeId);
+  assert.equal(isWon(game), false);
+  assert.equal(game.attempts.length, 1);
+  game = makeAttempt(game, answerId);
+  assert.equal(shareText(game, 'daily', '2026-11-20', 'https://example.com').split('\n')[1], '🟨🟩⬛⬛⬛');
 });
 
 test('clues progress to the complete published description and share text is spoiler-free', () => {

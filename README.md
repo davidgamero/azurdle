@@ -14,14 +14,27 @@ On your first visit, choose **Let's do it** in the welcome dialog to get started
 The welcome is remembered in this browser.
 
 1. Identify a service from its official icon.
-2. Search by name, acronym, or a supported historical name. Select a result and
-   press **Guess**. Search results are text-only, with keyboard navigation.
+2. Search by name, acronym, or a supported historical name. Typo-tolerant search
+   highlights the closest match. Tap a suggestion, press **Enter**, or use
+   **Guess** to submit it immediately; arrow keys change the highlighted match.
+   Suggestions omit the leading “Azure” and are text-only. On mobile they open
+   above the input and size to the space visible above the keyboard.
 3. Each wrong guess or **Next clue** consumes one of five attempts and reveals a clue:
    **icon → categories → initials → description preview → full description**.
 4. Each hint has its own row, with future hints grayed out. Your numbered guess
    and its service icon appear beneath the hint used. Skips are numbered too.
 5. Copy a spoiler-free five-tile result grid, or keep learning in unlimited
-   practice mode. 🟥 incorrect · ⬜ skipped · 🟩 correct · ⬛ unused.
+   practice mode. 🟥 incorrect · 🟨 close · ⬜ skipped · 🟩 correct · ⬛ unused.
+
+**Close** means the guess shares at least one of Microsoft's published product
+categories with the answer. The catalog contains 21 non-exclusive categories,
+including Compute, Containers, Networking, Storage, Databases, and Security.
+For example, Functions and Container Apps overlap in Compute and Containers.
+Close guesses consume an attempt and reveal the next hint; only the exact
+service wins. Results and copied grids use the same classification.
+Sources: [Azure product categories](https://azure.microsoft.com/en-us/products/),
+[Compute](https://azure.microsoft.com/en-us/products/category/compute/), and
+[Containers](https://azure.microsoft.com/en-us/products/category/containers/).
 
 Use the command-bar menus: **Game** for daily/practice, **View** for statistics and the
 service directory, and **Help** for instructions and credits. Menus support

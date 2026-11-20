@@ -24,9 +24,8 @@ test('icon-only start, keyboard autocomplete, win, persistence, stats, and share
   await expect(page.getByRole('heading', { name: 'Identify this Azure service' })).toBeVisible();
   const search = page.getByRole('combobox', { name: 'Which Azure service is this?' });
   await search.fill(answer.name);
-  await expect(page.getByRole('option').first()).toHaveText(answer.name);
+  await expect(page.getByRole('option').first()).toHaveText(answer.name.replace(/^Azure\s+/i, ''));
   await expect(page.getByRole('listbox').locator('img, svg')).toHaveCount(0);
-  await search.press('Enter');
   await search.press('Enter');
   await expect(page.getByRole('region', { name: 'Game result' })).toContainText('Solved in 1/5');
   await expect(page.getByRole('region', { name: 'Icon hint' }).locator('.hint-guess')).toContainText(answer.name);
@@ -56,7 +55,6 @@ test('wrong guesses and skips progressively unlock the full description and loss
   const search = page.getByRole('combobox', { name: 'Which Azure service is this?' });
   await search.fill(wrong.name);
   await page.getByRole('option').first().click();
-  await page.getByRole('button', { name: 'Guess', exact: false }).click();
   await expect(page.getByRole('region', { name: 'Category hint' })).toContainText(answer.categories[0]);
   await expect(page.getByRole('region', { name: 'Icon hint' }).locator('.hint-guess')).toContainText(wrong.name);
   await expect(page.getByRole('region', { name: 'Icon hint' }).getByLabel('Not quite')).toBeVisible();
@@ -153,4 +151,49 @@ test('short screens keep primary actions and navigation accessible', async ({ pa
   await expect(page.getByText('Practice', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Identify this Azure service' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test('fuzzy matches highlight, tap submits once, and close guesses share yellow tiles', async ({ page, isMobile, context }) => {
+  const search = page.getByRole('combobox', { name: 'Which Azure service is this?' });
+  await search.fill('funtcions');
+  const option = page.getByRole('option', { name: 'Functions', exact: true });
+  await expect(option).toHaveAttribute('aria-selected', 'true');
+  const listBox = await page.getByRole('listbox').boundingBox();
+  const inputBox = await search.boundingBox();
+  if (isMobile) {
+    expect(listBox!.y + listBox!.height).toBeLessThanOrEqual(inputBox!.y);
+    expect(listBox!.y).toBeGreaterThanOrEqual(0);
+    await option.tap();
+  } else {
+    expect(listBox!.y).toBeGreaterThan(inputBox!.y);
+    await option.click();
+  }
+  await expect(page.getByLabel('4 attempts remaining', { exact: true })).toBeVisible();
+  await expect(page.locator('.hint-guess')).toHaveCount(1);
+  await expect(page.locator('.hint-guess')).toContainText('Azure Functions');
+  await expect(page.locator('.close-badge')).toHaveText('Close');
+  await search.fill(answer.name);
+  await search.press('Enter');
+  await expect(page.getByRole('region', { name: 'Game result' })).toContainText('Solved in 2/5');
+  await expect(page.getByRole('group', { name: 'Shareable result grid' })).toHaveText('🟨🟩⬛⬛⬛');
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByRole('button', { name: 'Copy result' }).click();
+  expect((await page.evaluate(() => navigator.clipboard.readText())).split('\n')[1]).toBe('🟨🟩⬛⬛⬛');
+});
+
+test('arrow keys change the submitted suggestion and empty searches do not guess', async ({ page }) => {
+  const search = page.getByRole('combobox', { name: 'Which Azure service is this?' });
+  await search.press('Enter');
+  await expect(page.getByLabel('5 attempts remaining', { exact: true })).toBeVisible();
+  await search.fill('container');
+  const secondName = await page.getByRole('option').nth(1).innerText();
+  await search.press('ArrowDown');
+  await expect(page.getByRole('option').nth(1)).toHaveAttribute('aria-selected', 'true');
+  await search.press('Enter');
+  await expect(page.locator('.hint-guess')).toHaveCount(1);
+  await expect(page.locator('.hint-guess')).toContainText(secondName);
+  await search.fill('zzzz-not-a-service');
+  await search.press('Escape');
+  await page.getByRole('button', { name: 'Guess', exact: true }).click();
+  await expect(page.locator('.hint-guess')).toHaveCount(1);
 });

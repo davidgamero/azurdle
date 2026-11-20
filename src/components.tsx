@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode, type KeyboardEvent } from 'react';
 import { searchServices, type Service } from './game';
 
 export function PortalIcon({ kind, size = 24 }: { kind: 'computer' | 'folder' | 'help' | 'stats' | 'globe' | 'play'; size?: number }) {
@@ -76,38 +76,65 @@ export function GuessInput({ excluded, onGuess, onSkip, lastAttempt }: { exclude
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const [selected, setSelected] = useState<Service | null>(null);
   const [error, setError] = useState('');
+  const [suggestionSpace, setSuggestionSpace] = useState(280);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const results = searchServices(query, excluded).slice(0, 50);
-  const expanded = open && !selected;
-  useEffect(() => { listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' }); }, [active]);
+  const expanded = open;
+  useEffect(() => {
+    const list = listRef.current;
+    const option = list?.querySelector<HTMLElement>(`[data-index="${active}"]`);
+    if (!list || !option) return;
+    if (option.offsetTop < list.scrollTop) list.scrollTop = option.offsetTop;
+    else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
+  }, [active, query, expanded]);
+  useEffect(() => {
+    if (!expanded) return;
+    const updateSpace = () => {
+      const top = inputRef.current?.getBoundingClientRect().top ?? 0;
+      setSuggestionSpace(Math.max(0, Math.min(280, top - (window.visualViewport?.offsetTop ?? 0) - 8)));
+    };
+    updateSpace();
+    window.addEventListener('resize', updateSpace);
+    window.addEventListener('scroll', updateSpace, true);
+    window.visualViewport?.addEventListener('resize', updateSpace);
+    window.visualViewport?.addEventListener('scroll', updateSpace);
+    return () => {
+      window.removeEventListener('resize', updateSpace);
+      window.removeEventListener('scroll', updateSpace, true);
+      window.visualViewport?.removeEventListener('resize', updateSpace);
+      window.visualViewport?.removeEventListener('scroll', updateSpace);
+    };
+  }, [expanded]);
 
-  function choose(service: Service) { setSelected(service); setQuery(service.name); setOpen(false); setError(''); inputRef.current?.focus(); }
-  function submit() {
-    if (!selected) { setOpen(true); setError('Choose a service from the list first.'); inputRef.current?.focus(); return; }
-    onGuess(selected.id); setSelected(null); setQuery(''); setOpen(false); setActive(0); setError(''); inputRef.current?.focus();
+  function submit(service?: Service) {
+    const candidate = service ?? (query.trim() ? results[active] : undefined);
+    if (!candidate) { setOpen(true); setError(query.trim() ? 'No matching service. Try another name.' : 'Type a service name first.'); inputRef.current?.focus(); return; }
+    onGuess(candidate.id);
+    inputRef.current?.focus({ preventScroll: true });
+    setQuery(''); setOpen(false); setActive(0); setError('');
   }
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault(); setOpen(true); setSelected(null);
+      event.preventDefault(); setOpen(true);
       setActive((index) => Math.max(0, Math.min(results.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1))));
     } else if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
-    else if (event.key === 'Enter' && expanded && results[active]) { event.preventDefault(); choose(results[active]); }
+    else if (event.key === 'Enter') { event.preventDefault(); submit(); }
   }
   return <form className="guess-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
     <label htmlFor="service-search" className="sr-only">Which Azure service is this?</label>
     <div className="guess-input-row">
       <div className="autocomplete" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-        <div className="input-shell"><span className="search-symbol" aria-hidden="true">⌕</span><input id="service-search" ref={inputRef} role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls="service-options" aria-activedescendant={expanded && results[active] ? `option-${results[active].id}` : undefined} aria-describedby="search-hint" autoComplete="off" placeholder="Search Azure services…" value={query} onChange={(event) => { setQuery(event.target.value); setSelected(null); setOpen(true); setActive(0); setError(''); }} onFocus={() => { if (!selected) setOpen(true); }} onKeyDown={onKeyDown}/>{selected && <span className="selected-check" aria-label="Service selected">✓</span>}</div>
-        {expanded && <ul id="service-options" role="listbox" aria-label="Azure services" ref={listRef} className="suggestions">
-          {results.map((service, index) => <li id={`option-${service.id}`} key={service.id} role="option" aria-selected={index === active} data-index={index} className={index === active ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(service)} onMouseMove={() => setActive(index)}><span>{service.name}</span></li>)}
+        <div className="input-shell"><span className="search-symbol" aria-hidden="true">⌕</span><input id="service-search" ref={inputRef} role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls="service-options" aria-activedescendant={expanded && results[active] ? `option-${results[active].id}` : undefined} aria-describedby="search-hint" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} enterKeyHint="go" placeholder="Search Azure services…" value={query} onChange={(event) => { setQuery(event.target.value); setOpen(true); setActive(0); setError(''); }} onFocus={() => setOpen(true)} onKeyDown={onKeyDown}/></div>
+        {expanded && <ul id="service-options" role="listbox" aria-label="Azure services" ref={listRef} className="suggestions" style={{ '--suggestion-space': `${suggestionSpace}px` } as CSSProperties}>
+          {results.map((service, index) => <li id={`option-${service.id}`} key={service.id} role="option" aria-selected={index === active} data-index={index} className={index === active ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => submit(service)} onMouseMove={() => setActive(index)}><span>{service.name.replace(/^Azure\s+/i, '')}</span></li>)}
           {!results.length && <li className="no-results" role="presentation">No matching services. Try a shorter name or acronym.</li>}
         </ul>}
       </div>
     </div>
     <div className="game-actions"><button type="submit" className="portal-button primary">Guess <span aria-hidden="true">↵</span></button><button type="button" className="portal-button" onClick={onSkip} title={lastAttempt ? 'Use the final attempt and reveal the answer' : 'Skip this attempt to unlock a clue'}>{lastAttempt ? 'Reveal answer' : 'Next clue'} <span aria-hidden="true">→</span></button></div>
-    <div id="search-hint" className={error ? 'input-hint error' : 'sr-only'} aria-live="polite">{error || 'Search by name or acronym. Arrow keys to browse, Enter to select. Next clue uses an attempt.'}</div>
+    <div id="search-hint" className={error ? 'input-hint error' : 'sr-only'} aria-live="polite">{error || 'Search by name or acronym. The closest match is highlighted. Tap a suggestion or press Enter to guess. Arrow keys change the highlighted match. Next clue uses an attempt.'}</div>
   </form>;
 }

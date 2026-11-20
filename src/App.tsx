@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import catalog from './data/catalog.json' with { type: 'json' };
-import { byId, clueNames, clueText, dailyAnswer, getStats, isFinished, isWon, makeAttempt, MAX_ATTEMPTS, playable, practiceAnswer, puzzleNumber, readGame, readRecords, resultTiles, searchServices, services, shareText, utcDate, type DailyRecord, type Game, type Mode } from './game';
+import { byId, clueNames, clueText, dailyAnswer, getStats, guessFeedback, isFinished, isWon, makeAttempt, MAX_ATTEMPTS, playable, practiceAnswer, puzzleNumber, readGame, readRecords, resultTiles, searchServices, services, shareText, utcDate, type DailyRecord, type Game, type Mode } from './game';
 import { GuessInput, MenuBar, Modal, ServiceIcon } from './components';
 
 // Keep the previous six-attempt saves intact and separate from the new rules.
@@ -41,7 +41,8 @@ function Help() {
     <h2>Guess the Azure service.</h2>
     <p>Five attempts. Each wrong guess or <strong>Next clue</strong> reveals more.</p>
     <ol className="help-steps">{clueNames.map((name, index) => <li key={name}><span>{index + 1}</span>{name}</li>)}</ol>
-    <p>Type a service name, select a match, then press <strong>Guess</strong>.</p>
+    <p>Type a service name. Tap a match or press <strong>Enter</strong> to guess the highlighted result.</p>
+    <p><strong className="close-text">Close</strong> means your guess shares a category with the answer, using <a href={catalog.source} target="_blank" rel="noreferrer">Microsoft’s service categories</a>. Close guesses use an attempt and appear yellow in your result grid.</p>
     <p>Daily puzzles reset at midnight UTC. Find unlimited practice under <strong>Game</strong>.</p>
     <p className="fine-print">Initials omit “Azure”, “Microsoft”, and parenthesized text. Next clue uses an attempt.</p>
   </>;
@@ -70,7 +71,9 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
 
   function attempt(id: string | null) {
     setGame((current) => makeAttempt(current, id));
-    setAnnouncement(id === answer.id ? 'Correct! Service identified.' : game.attempts.length === MAX_ATTEMPTS - 1 ? `The service was ${answer.name}.` : `${id ? 'Not quite.' : 'Attempt skipped.'} ${clueNames[stage + 1]} clue unlocked.`);
+    const feedback = guessFeedback(answer.id, id);
+    const message = feedback.state === 'close' ? `Close! Shared category: ${feedback.sharedCategories.join(', ')}.` : id ? 'Not quite.' : 'Attempt skipped.';
+    setAnnouncement(id === answer.id ? 'Correct! Service identified.' : game.attempts.length === MAX_ATTEMPTS - 1 ? `${message} The service was ${answer.name}.` : `${message} ${clueNames[stage + 1]} clue unlocked.`);
   }
   async function copyResult() {
     try { await navigator.clipboard.writeText(shareValue); setShare('Copied!'); }
@@ -85,15 +88,15 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
       {clueNames.map((name, index) => {
         const guess = game.attempts[index];
         const unlocked = Boolean(guess) || (!finished && index <= stage);
-        const correct = guess?.id === answer.id;
+        const feedback = guess ? guessFeedback(answer.id, guess.id) : null;
         return <section key={name} aria-label={`${name} hint`} className={`hint-row ${unlocked ? 'unlocked' : 'locked'} ${!finished && index === stage ? 'current' : ''}`}>
           <div className="hint-label"><span className="hint-number" aria-hidden="true">{index + 1}</span><h2>{name}</h2>{!unlocked && <span className="sr-only">Locked</span>}</div>
           {unlocked && <div className="hint-content">{index === 0 ? <div className="icon-stage"><ServiceIcon service={answer} mystery={!finished}/></div> : <p className={index === 2 ? 'initials-clue' : ''}>{clueText(answer, index)}</p>}</div>}
-          {guess && <div className={`hint-guess ${correct ? 'correct' : guess.id ? 'wrong' : 'skipped'}`}>
+          {guess && feedback && <div className={`hint-guess ${feedback.state}`}>
             <span className="guess-label">Guess {index + 1}:</span>
             {guess.id && <ServiceIcon service={byId.get(guess.id)!}/>}
             <span className="guess-name">{guess.id ? byId.get(guess.id)!.name : 'Skipped'}</span>
-            <span className="guess-result" aria-label={correct ? 'Correct' : guess.id ? 'Not quite' : 'Skipped attempt'}>{correct ? '✓' : guess.id ? '×' : '–'}</span>
+            <span className={`guess-result ${feedback.state === 'close' ? 'close-badge' : ''}`} title={feedback.state === 'close' ? `Shared categories: ${feedback.sharedCategories.join(', ')}` : undefined} aria-label={feedback.state === 'correct' ? 'Correct' : feedback.state === 'close' ? `Close — shared categories: ${feedback.sharedCategories.join(', ')}` : guess.id ? 'Not quite' : 'Skipped attempt'}>{feedback.state === 'correct' ? '✓' : feedback.state === 'close' ? 'Close' : guess.id ? '×' : '–'}</span>
           </div>}
         </section>;
       })}
