@@ -9,10 +9,10 @@ export type DailyRecord = { date: string; won: boolean; attempts: number };
 export const services: Service[] = catalog.services;
 export const byId = new Map(services.map((service) => [service.id, service]));
 export const playable = services.filter((service) => service.playable);
-export const MAX_ATTEMPTS = 6;
+export const MAX_ATTEMPTS = 5;
 export const EPOCH = Date.UTC(2026, 10, 20);
 export const DAY = 86_400_000;
-export const clueNames = ['Icon', 'Category', 'Name shape', 'Initials', 'Preview', 'Description'];
+export const clueNames = ['Icon', 'Category', 'Initials', 'Preview', 'Description'];
 export const utcDate = (date = new Date()) => date.toISOString().slice(0, 10);
 export const puzzleNumber = (date: string) => Math.floor((Date.parse(date) - EPOCH) / DAY) + 1;
 
@@ -69,13 +69,12 @@ export function clueText(service: Service, stage: number): string {
   const words = shortName(service).split(/\s+/);
   switch (stage) {
     case 1: return service.categories.join(' · ');
-    case 2: return words.map((word) => '▰'.repeat(word.length)).join('  ');
-    case 3: return words.map((word) => word[0]).join(' · ');
-    case 4: {
+    case 2: return words.map((word) => word[0]).join('');
+    case 3: {
       const description = service.description.split(' ');
       return description.slice(0, Math.max(2, Math.ceil(description.length / 2))).join(' ') + ' …';
     }
-    case 5: return service.description;
+    case 4: return service.description;
     default: return 'Identify the service from its official Azure icon.';
   }
 }
@@ -102,7 +101,7 @@ export function readRecords(raw: string | null): DailyRecord[] {
     if (!Array.isArray(records)) return [];
     const unique = new Map<string, DailyRecord>();
     for (const record of records) {
-      if (record && /^\d{4}-\d{2}-\d{2}$/.test(record.date) && Number.isFinite(Date.parse(record.date)) && typeof record.won === 'boolean' && Number.isInteger(record.attempts) && record.attempts >= 1 && record.attempts <= 6) unique.set(record.date, record);
+      if (record && /^\d{4}-\d{2}-\d{2}$/.test(record.date) && Number.isFinite(Date.parse(record.date)) && typeof record.won === 'boolean' && Number.isInteger(record.attempts) && record.attempts >= 1 && record.attempts <= MAX_ATTEMPTS) unique.set(record.date, record);
     }
     return [...unique.values()].sort((a, b) => a.date.localeCompare(b.date));
   } catch { return []; }
@@ -120,11 +119,11 @@ export function getStats(records: DailyRecord[], today: string) {
   const age = latest ? Date.parse(today) - Date.parse(latest.date) : Infinity;
   return { played: records.length, winRate: records.length ? Math.round(wins.length / records.length * 100) : 0,
     streak: age >= 0 && age <= DAY ? streak : 0, best,
-    distribution: Array.from({ length: 6 }, (_, index) => wins.filter((record) => record.attempts === index + 1).length) };
+    distribution: Array.from({ length: MAX_ATTEMPTS }, (_, index) => wins.filter((record) => record.attempts === index + 1).length) };
 }
 
 export function shareText(game: Game, mode: Mode, date: string, url: string): string {
   const label = mode === 'daily' ? `#${puzzleNumber(date)} (${date})` : 'Practice';
   const tiles = game.attempts.map(({ id }) => id === game.answerId ? '🟩' : id === null ? '⬜' : '🟥').join('');
-  return `Azurdle ${label}  ${isWon(game) ? game.attempts.length : 'X'}/6\n${tiles}\nA little cloud. A little nostalgia.\n${url}`;
+  return `Azurdle ${label}  ${isWon(game) ? game.attempts.length : 'X'}/${MAX_ATTEMPTS}\n${tiles}\nA little cloud. A little nostalgia.\n${url}`;
 }

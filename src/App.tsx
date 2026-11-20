@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import catalog from './data/catalog.json' with { type: 'json' };
-import { byId, clueNames, clueText, dailyAnswer, getStats, isFinished, isWon, makeAttempt, playable, practiceAnswer, puzzleNumber, readGame, readRecords, searchServices, services, shareText, shortName, utcDate, type DailyRecord, type Game, type Mode } from './game';
-import { GuessInput, MenuBar, Modal, PixelIcon, ServiceIcon, TitleBar } from './components';
+import { byId, clueNames, clueText, dailyAnswer, getStats, isFinished, isWon, makeAttempt, MAX_ATTEMPTS, playable, practiceAnswer, puzzleNumber, readGame, readRecords, searchServices, services, shareText, utcDate, type DailyRecord, type Game, type Mode } from './game';
+import { GuessInput, MenuBar, Modal, ServiceIcon, TitleBar } from './components';
 
-const STORAGE = 'azurdle:v1:';
+// Keep the previous six-attempt saves intact and separate from the new rules.
+const STORAGE = 'azurdle:v2:';
 function load(key: string) { try { return localStorage.getItem(STORAGE + key); } catch { return null; } }
 function save(key: string, value: unknown) { try { localStorage.setItem(STORAGE + key, JSON.stringify(value)); return true; } catch { return false; } }
 type Dialog = 'help' | 'stats' | 'directory' | 'about' | null;
@@ -20,7 +21,7 @@ function Directory() {
     </div>
     <div className="directory-count" role="status">{results.length} services</div>
     <div className="directory-list">{results.map((service) => <a key={service.id} href={service.url} target="_blank" rel="noreferrer" className="directory-service">
-      <ServiceIcon service={service}/><div><strong>{service.name} ↗</strong><p>{service.description}</p>{!service.playable && <small>Generic icon · not a puzzle answer</small>}</div>
+      <div><strong>{service.name} ↗</strong><p>{service.description}</p></div>
     </a>)}{!results.length && <p>No matching services.</p>}</div>
   </>;
 }
@@ -38,11 +39,11 @@ function Statistics({ records, date }: { records: DailyRecord[]; date: string })
 function Help() {
   return <>
     <h2>Guess the Azure service.</h2>
-    <p>Six attempts. Each wrong guess or <strong>Next clue</strong> reveals more.</p>
+    <p>Five attempts. Each wrong guess or <strong>Next clue</strong> reveals more.</p>
     <ol className="help-steps">{clueNames.map((name, index) => <li key={name}><span>{index + 1}</span>{name}</li>)}</ol>
     <p>Type a service name, select a match, then press <strong>Guess</strong>.</p>
     <p>Daily puzzles reset at midnight UTC. Find unlimited practice under <strong>Game</strong>.</p>
-    <p className="fine-print">Name clues omit “Azure”, “Microsoft”, and parenthesized text. Next clue uses an attempt.</p>
+    <p className="fine-print">Initials omit “Azure”, “Microsoft”, and parenthesized text. Next clue uses an attempt.</p>
   </>;
 }
 
@@ -55,7 +56,7 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
   const [share, setShare] = useState('');
   const [manualShare, setManualShare] = useState(false);
   const finished = isFinished(game), won = isWon(game);
-  const stage = Math.min(game.attempts.length, 5);
+  const stage = Math.min(game.attempts.length, MAX_ATTEMPTS - 1);
   const shareValue = shareText(game, mode, date, new URL(import.meta.env.BASE_URL, window.location.href).href);
   useEffect(() => {
     setStorageFailed(!save(storageKey, game));
@@ -69,7 +70,7 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
 
   function attempt(id: string | null) {
     setGame((current) => makeAttempt(current, id));
-    setAnnouncement(id === answer.id ? 'Correct! Service identified.' : game.attempts.length === 5 ? `The service was ${answer.name}.` : `${id ? 'Not quite.' : 'Attempt skipped.'} ${clueNames[stage + 1]} clue unlocked.`);
+    setAnnouncement(id === answer.id ? 'Correct! Service identified.' : game.attempts.length === MAX_ATTEMPTS - 1 ? `The service was ${answer.name}.` : `${id ? 'Not quite.' : 'Attempt skipped.'} ${clueNames[stage + 1]} clue unlocked.`);
   }
   async function copyResult() {
     try { await navigator.clipboard.writeText(shareValue); setShare('Copied!'); }
@@ -77,8 +78,8 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
   }
   return <>
     <header className="game-heading">
-      <h1>{finished ? (won ? `Solved in ${game.attempts.length}/6` : 'Out of guesses') : 'Which service?'}</h1>
-      {!finished && <span className="attempt-counter" aria-label={`${6 - game.attempts.length} ${6 - game.attempts.length === 1 ? 'attempt' : 'attempts'} remaining`}>{stage + 1} / 6</span>}
+      <h1>{finished ? (won ? `Solved in ${game.attempts.length}/${MAX_ATTEMPTS}` : 'Out of guesses') : 'Which service?'}</h1>
+      {!finished && <span className="attempt-counter" aria-label={`${MAX_ATTEMPTS - game.attempts.length} ${MAX_ATTEMPTS - game.attempts.length === 1 ? 'attempt' : 'attempts'} remaining`}>{stage + 1} / {MAX_ATTEMPTS}</span>}
     </header>
     <section className={`mystery-card ${finished ? 'complete' : ''}`} aria-label="Mystery service clues">
       <div className="icon-stage"><ServiceIcon service={answer} mystery={!finished}/></div>
@@ -88,13 +89,13 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
       })}</ol>}
       {!finished && stage > 0 && <section className="revealed-clues" aria-label="Revealed clues">
         <p className="category-clue"><span className="sr-only">Category: </span>{clueText(answer, 1)}</p>
-        {stage >= 2 && <p className="name-clue" aria-label={`Name clue: ${stage >= 3 ? clueText(answer, 3) : shortName(answer).split(/\s+/).map((word) => word.length).join(', ') + ' letters per word'}`}><span className="sr-only">Name: </span>{stage >= 3 ? shortName(answer).split(/\s+/).map((word) => word[0] + '·'.repeat(word.length - 1)).join('  ') : clueText(answer, 2)}</p>}
-        {stage >= 4 && <p className="description-clue">{clueText(answer, stage === 5 ? 5 : 4)}</p>}
+        {stage >= 2 && <p className="initials-clue" aria-label={`Initials: ${clueText(answer, 2)}`}><span className="sr-only">Initials: </span>{clueText(answer, 2)}</p>}
+        {stage >= 3 && <p className="description-clue">{clueText(answer, stage === 4 ? 4 : 3)}</p>}
       </section>}
     </section>
     <div role="status" className="sr-only">{announcement}</div>
-    {!finished ? <GuessInput excluded={game.attempts.flatMap((attempt) => attempt.id ? [attempt.id] : [])} onGuess={attempt} onSkip={() => attempt(null)} lastAttempt={stage === 5}/> : <section className="result-panel" aria-label="Game result">
-      <span className="sr-only">{won ? `Solved in ${game.attempts.length}/6` : 'Out of guesses'}</span>
+    {!finished ? <GuessInput excluded={game.attempts.flatMap((attempt) => attempt.id ? [attempt.id] : [])} onGuess={attempt} onSkip={() => attempt(null)} lastAttempt={stage === MAX_ATTEMPTS - 1}/> : <section className="result-panel" aria-label="Game result">
+      <span className="sr-only">{won ? `Solved in ${game.attempts.length}/${MAX_ATTEMPTS}` : 'Out of guesses'}</span>
       <div className="game-actions"><button className="xp-button primary" onClick={copyResult}>Copy result</button><button className="xp-button" onClick={onNewPractice}>{mode === 'daily' ? 'Try practice' : 'Play again'} <span aria-hidden="true">→</span></button></div>
       {mode === 'daily' && <p className="next-puzzle">Next daily at 00:00 UTC</p>}
       <div className="share-status" role="status">{share}</div>

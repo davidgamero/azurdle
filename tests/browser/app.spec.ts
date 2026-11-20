@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { dailyAnswer, services } from '../../src/game';
+import { clueText, dailyAnswer, services } from '../../src/game';
 
 const date = '2026-11-20';
 const answer = dailyAnswer(date);
@@ -16,10 +16,11 @@ test('icon-only start, keyboard autocomplete, win, persistence, stats, and share
   await expect(page.getByRole('heading', { name: 'Which service?' })).toBeVisible();
   const search = page.getByRole('combobox', { name: 'Which Azure service is this?' });
   await search.fill(answer.name);
-  await expect(page.getByRole('option').first().locator('img')).toBeVisible();
+  await expect(page.getByRole('option').first()).toHaveText(answer.name);
+  await expect(page.getByRole('listbox').locator('img, svg')).toHaveCount(0);
   await search.press('Enter');
   await search.press('Enter');
-  await expect(page.getByRole('region', { name: 'Game result' })).toContainText('Solved in 1/6');
+  await expect(page.getByRole('region', { name: 'Game result' })).toContainText('Solved in 1/5');
   await page.reload();
   await expect(page.getByRole('region', { name: 'Game result' })).toBeVisible();
   await page.getByRole('menuitem', { name: 'View', exact: true }).click();
@@ -30,7 +31,7 @@ test('icon-only start, keyboard autocomplete, win, persistence, stats, and share
   await page.getByRole('button', { name: 'Copy result' }).click();
   await expect(page.getByText('Copied!')).toBeVisible();
   const text = await page.evaluate(() => navigator.clipboard.readText());
-  expect(text).toContain('1/6');
+  expect(text).toContain('1/5');
   expect(text).not.toContain(answer.name);
   expect(errors).toEqual([]);
 });
@@ -44,8 +45,11 @@ test('wrong guesses and skips progressively unlock the full description and loss
   await expect(page.getByRole('region', { name: 'Revealed clues' })).toContainText(answer.categories[0]);
   await expect(page.getByRole('region', { name: 'Your attempts' }).getByLabel('Not quite')).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel('5 attempts remaining', { exact: true })).toBeVisible();
-  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Next clue' }).click();
+  await expect(page.getByLabel('4 attempts remaining', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Next clue' }).click();
+  await expect(page.locator('.initials-clue')).toHaveText(`Initials: ${clueText(answer, 2)}`);
+  await expect(page.getByRole('region', { name: 'Revealed clues' })).not.toContainText('▰');
+  for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Next clue' }).click();
   await expect(page.getByRole('region', { name: 'Revealed clues' })).toContainText(answer.description);
   await expect(page.getByLabel('1 attempt remaining', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Reveal answer' }).click();
@@ -54,7 +58,7 @@ test('wrong guesses and skips progressively unlock the full description and loss
   await expect(page.getByRole('link', { name: 'Learn more' })).toBeVisible();
   await page.getByRole('button', { name: 'Try practice' }).click();
   await expect(page.getByText('Practice', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('6 attempts remaining', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('5 attempts remaining', { exact: true })).toBeVisible();
 });
 
 test('directory, no matches, dialog keyboard dismissal, and desktop controls', async ({ page }) => {
@@ -64,11 +68,13 @@ test('directory, no matches, dialog keyboard dismissal, and desktop controls', a
   await page.getByRole('menuitem', { name: 'Service directory', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search directory' }).fill('AKS');
   await expect(page.getByRole('dialog').getByRole('link', { name: /Azure Kubernetes Service/ })).toBeVisible();
+  await expect(page.locator('.directory-list img')).toHaveCount(0);
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Minimize window', exact: true }).click();
   await page.getByRole('button', { name: 'Open Azurdle' }).click();
   await expect(page.getByRole('heading', { name: 'Which service?' })).toBeVisible();
+  await page.setViewportSize({ width: page.viewportSize()!.width, height: 844 });
   await page.getByRole('button', { name: 'start', exact: true }).click();
   await page.locator('#start-menu').getByRole('button', { name: 'Azurdle', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Game', exact: true }).click();
@@ -82,8 +88,8 @@ test('UTC midnight rolls daily puzzle over while retaining prior progress', asyn
   await page.clock.setSystemTime(new Date('2026-11-20T23:59:59Z'));
   await page.clock.runFor(2000);
   await expect(page.getByText('Daily #2', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('6 attempts remaining', { exact: true })).toBeVisible();
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('azurdle:v1:daily:2026-11-20')!).attempts.length)).toBe(1);
+  await expect(page.getByLabel('5 attempts remaining', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('azurdle:v2:daily:2026-11-20')!).attempts.length)).toBe(1);
 });
 
 test('renders with unavailable browser storage', async ({ page }) => {
@@ -91,7 +97,7 @@ test('renders with unavailable browser storage', async ({ page }) => {
   await page.reload();
   await expect(page.getByText('Browser storage is unavailable.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Next clue' }).click();
-  await expect(page.getByLabel('5 attempts remaining', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('4 attempts remaining', { exact: true })).toBeVisible();
 });
 
 test('XP menus support keyboard navigation, mode switching, and dismissal', async ({ page }) => {
@@ -120,4 +126,16 @@ test('XP menus support keyboard navigation, mode switching, and dismissal', asyn
     const box = await page.getByRole('button', { name, exact: true }).boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   }
+});
+
+test('short screens hide the taskbar and can still restore the game', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  await expect(page.getByRole('button', { name: 'start', exact: true })).toBeHidden();
+  const guess = await page.getByRole('button', { name: 'Guess', exact: true }).boundingBox();
+  expect(guess!.y + guess!.height).toBeLessThan(600);
+  await page.getByRole('button', { name: 'Minimize window', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Azurdle' }).click();
+  await expect(page.getByRole('heading', { name: 'Which service?' })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('button', { name: 'start', exact: true })).toBeVisible();
 });

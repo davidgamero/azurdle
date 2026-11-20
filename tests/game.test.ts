@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { byId, clueText, dailyAnswer, EPOCH, DAY, getStats, isFinished, isWon, makeAttempt, readGame, readRecords, searchServices, services, shareText, utcDate } from '../src/game';
+import { byId, clueNames, clueText, dailyAnswer, EPOCH, DAY, getStats, isFinished, isWon, makeAttempt, readGame, readRecords, searchServices, services, shareText, utcDate } from '../src/game';
 import pool from '../src/data/daily-pool.json' with { type: 'json' };
 
 test('daily schedule is UTC-based, deterministic, and does not repeat within a cycle', () => {
@@ -32,8 +32,8 @@ test('wrong guesses and skips consume attempts; duplicates and postgame attempts
   game = makeAttempt(game, wrong.id);
   assert.equal(makeAttempt(game, wrong.id), game);
   assert.equal(makeAttempt(game, 'nonexistent-service'), game);
-  for (let i = 0; i < 5; i++) game = makeAttempt(game, null);
-  assert.equal(game.attempts.length, 6);
+  for (let i = 0; i < 4; i++) game = makeAttempt(game, null);
+  assert.equal(game.attempts.length, 5);
   assert.equal(isFinished(game), true);
   assert.equal(isWon(game), false);
   assert.equal(makeAttempt(game, answer.id), game);
@@ -65,12 +65,13 @@ test('autocomplete supports abbreviations, aliases, flexible word order, and exc
 
 test('clues progress to the complete published description and share text is spoiler-free', () => {
   const answer = byId.get('azure-key-vault')!;
-  assert.equal(clueText(answer, 3), 'K · V');
-  assert.equal(clueText(answer, 5), answer.description);
-  assert.ok(clueText(answer, 4).length < answer.description.length + 2);
+  assert.deepEqual(clueNames, ['Icon', 'Category', 'Initials', 'Preview', 'Description']);
+  assert.equal(clueText(answer, 2), 'KV');
+  assert.equal(clueText(answer, 4), answer.description);
+  assert.ok(clueText(answer, 3).length < answer.description.length + 2);
   const text = shareText({ answerId: answer.id, attempts: [{ id: null }, { id: answer.id }] }, 'daily', '2026-11-20', 'https://example.com/azurdle/');
   assert.ok(text.includes('⬜🟩'));
-  assert.ok(text.includes('2/6'));
+  assert.ok(text.includes('2/5'));
   assert.ok(!text.includes(answer.name));
 });
 
@@ -83,8 +84,9 @@ test('streaks respect missed days, losses, and unfinished today; duplicate recor
   assert.equal(getStats(records, '2026-11-22').streak, 2);
   assert.equal(getStats(records, '2026-11-23').streak, 0);
   assert.equal(getStats(records, '2026-11-22').played, 2);
-  const lost = [...records, { date: '2026-11-22', won: false, attempts: 6 }];
+  const lost = [...records, { date: '2026-11-22', won: false, attempts: 5 }];
   assert.equal(getStats(lost, '2026-11-22').streak, 0);
   assert.equal(getStats(lost, '2026-11-22').best, 2);
   assert.deepEqual(readRecords('{'), []);
+  assert.equal(getStats(records, '2026-11-22').distribution.length, 5);
 });

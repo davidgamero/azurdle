@@ -70,7 +70,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .revealed-clues p { margin: 0; }
 .revealed-clues p + p { margin-top: 14px; }
 .category-clue { font-size: 13px; color: #526b8b; }
-.name-clue { font: 17px/1.7 Consolas, monospace; color: #254e80; white-space: pre-wrap; overflow-wrap: anywhere; }
+.initials-clue { font: 17px/1.7 Consolas, monospace; color: #254e80; overflow-wrap: anywhere; }
 .description-clue { font-size: 14px; color: #454c54; }
 .guess-form { margin-top: 22px; }
 .autocomplete { position: relative; }
@@ -92,9 +92,7 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .suggestions { position: absolute; left: 0; top: 54px; width: 100%; z-index: 10; list-style: none; margin: 0; padding: 3px; background: white; border: 1px solid #7f9db9; box-shadow: 3px 4px 0 #0002; max-height: 300px; overflow: auto; }
 .suggestions li { display: flex; align-items: center; gap: 12px; padding: 11px 10px; min-height: 52px; cursor: pointer; }
 .suggestions li.active { background: #316ac5; color: white; }
-.suggestions .service-icon { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
-.suggestions strong { font-size: 14px; font-weight: normal; line-height: 1.4; }
-.suggestions small { display: block; font-size: 11px; margin-top: 4px; }
+.suggestions li>span { font-size: 14px; line-height: 1.4; }
 .suggestions .no-results { color: #626c78; font-size: 13px; line-height: 1.5; cursor: default; }
 .input-hint { font-size: 12px; margin-top: 10px; }
 .error { color: #a53620; }
@@ -148,7 +146,6 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .directory-list { max-height: 52dvh; overflow: auto; border: 1px solid #c4c0af; background: white; }
 .directory-service { display: flex; gap: 15px; padding: 16px 12px; border-bottom: 1px solid #e5e6e2; text-decoration: none; }
 .directory-service:hover { background: #eef4fc; }
-.directory-service .service-icon { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
 .directory-service strong { font-size: 14px; font-weight: normal; }
 .directory-service p { font-size: 12px; color: #67717c; margin: 6px 0 0; }
 .directory-service small { display: block; font-size: 11px; color: #67717c; margin-top: 6px; }
@@ -206,6 +203,10 @@ svg { vertical-align: middle; flex-shrink: 0; }
   .game-actions .xp-button span { margin-left: 2px; }
   .menu-trigger { padding: 6px 8px; }
   .task-button { width: 105px; }
+}
+@media (max-height: 700px) {
+  .taskbar { display: none; }
+  .desktop { padding-top: 10px; padding-bottom: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }

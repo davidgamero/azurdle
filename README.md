@@ -1,6 +1,6 @@
 # Azurdle ☁
 
-**One Azure service. Six clues. A little Windows XP nostalgia.**
+**One Azure service. Five clues. A little Windows XP nostalgia.**
 
 [Play Azurdle](https://davidgamero.github.io/azurdle/)
 
@@ -12,20 +12,23 @@ no backend, account, API keys, or runtime requests to Microsoft.
 
 1. Identify a service from its official icon.
 2. Search by name, acronym, or a supported historical name. Select a result and
-   press **Guess**. Autocomplete includes icons and keyboard navigation.
-3. Each wrong guess or **Next clue** consumes one of six attempts and reveals a clue:
-   **icon → categories → word lengths → initials → description preview → full description**.
+   press **Guess**. Search results are text-only, with keyboard navigation.
+3. Each wrong guess or **Next clue** consumes one of five attempts and reveals a clue:
+   **icon → categories → initials → description preview → full description**.
 4. Share a spoiler-free result, or keep learning in unlimited practice mode.
 
 Use the XP menus: **Game** for daily/practice, **View** for statistics and the
 service directory, and **Help** for instructions and credits. Menus support
 arrow keys, Enter, and Escape. The main screen keeps only the icon, clues,
 search, and large **Guess / Next clue** buttons.
+The taskbar hides on screens 700px tall or shorter to leave more room to play.
 
 The daily service is the same for everyone and changes at **00:00 UTC**.
 Daily progress, stats, and practice progress are saved in browser local storage.
 Streaks count consecutive daily wins. A skipped day or a loss breaks the streak;
 an unfinished current day does not. Practice does not affect daily statistics.
+Five-attempt games use the `azurdle:v2:` storage namespace. Previous six-attempt
+saves remain intact under `azurdle:v1:` and are not mixed into the new scores.
 
 ## Develop
 
@@ -60,7 +63,8 @@ than an entire product page.
 
 **180 products have matched official icons** from the architecture icon pack or
 Microsoft's documentation hub. Products without matched icons are still
-searchable, with a clearly labeled generic icon, but cannot be puzzle answers.
+searchable, but cannot be puzzle answers. Search results never show icons;
+icons appear only as the puzzle clue and beside submitted guesses.
 This catalog reflects Microsoft's published directory, including related
 developer products. It is not a list of every Azure resource-provider type.
 
