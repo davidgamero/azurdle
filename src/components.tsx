@@ -1,6 +1,18 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode, type KeyboardEvent } from 'react';
 import { searchServices, type Service } from './game';
 
+export function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [query]);
+  return matches;
+}
+
 export function PortalIcon({ kind, size = 24 }: { kind: 'computer' | 'folder' | 'help' | 'stats' | 'globe' | 'play'; size?: number }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     {kind === 'computer' && <><rect x="3" y="4" width="18" height="13" rx="1"/><path d="M12 17v4m-4 0h8"/></>}
@@ -17,35 +29,49 @@ export function ServiceIcon({ service, mystery = false }: { service: Service; my
 }
 
 type MenuItem = { label: string; icon: Parameters<typeof PortalIcon>[0]['kind']; action: () => void; checked?: boolean; divider?: boolean };
-export function MenuBar({ menus, status }: { menus: { label: string; items: MenuItem[] }[]; status: string }) {
+export function MenuBar({ menus, status, compact = false }: { menus: { label: string; items: MenuItem[] }[]; status: string; compact?: boolean }) {
   const [open, setOpen] = useState<number | null>(null);
   const [focused, setFocused] = useState(0);
   const ref = useRef<HTMLElement>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
   const [itemIndex, setItemIndex] = useState<number | null>(null);
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const narrow = useMediaQuery('(max-width: 540px)');
+  const collapsed = compact && narrow;
 
   useEffect(() => {
-    if (open === null) return;
-    const dismiss = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(null); };
+    if (open === null && !navigationOpen) return;
+    const dismiss = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) close(); };
     document.addEventListener('pointerdown', dismiss);
     return () => document.removeEventListener('pointerdown', dismiss);
-  }, [open]);
+  }, [open, navigationOpen]);
+  useEffect(() => {
+    if (collapsed && navigationOpen) triggers.current[0]?.focus();
+  }, [collapsed, navigationOpen]);
   useEffect(() => {
     if (open !== null && itemIndex !== null) ref.current?.querySelector<HTMLButtonElement>(`[data-menu="${open}"][data-item="${itemIndex}"]`)?.focus();
   }, [open, itemIndex]);
 
-  function close(restore = false) { if (restore && open !== null) triggers.current[open]?.focus(); setOpen(null); setItemIndex(null); }
+  function close(restore = false) {
+    if (restore) {
+      if (collapsed) toggleRef.current?.focus();
+      else if (open !== null) triggers.current[open]?.focus();
+    }
+    setOpen(null); setItemIndex(null); setNavigationOpen(false);
+  }
   function moveMenu(index: number) {
     const next = (index + menus.length) % menus.length;
     setFocused(next); setOpen(next); setItemIndex(0);
   }
-  return <nav ref={ref} className="menu-bar" aria-label="Application menu" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) close(); }}>
-    <div role="menubar" aria-label="Azurdle menus" className="menu-bar-items">
+  return <nav ref={ref} className={`menu-bar ${compact ? 'compact' : ''} ${collapsed ? 'collapsed' : ''}`} aria-label="Application menu" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) close(); }}>
+    {collapsed && <button ref={toggleRef} className="navigation-toggle" aria-label="Open navigation" aria-expanded={navigationOpen} aria-controls="navigation-items" onClick={() => navigationOpen ? close() : setNavigationOpen(true)} onKeyDown={(event) => { if (event.key === 'Escape') close(true); if (event.key === 'ArrowDown') { event.preventDefault(); setNavigationOpen(true); } }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>}
+    <div id="navigation-items" role="menubar" aria-label="Azurdle menus" className="menu-bar-items" hidden={collapsed && !navigationOpen}>
       {menus.map((menu, index) => <div className="menu-group" key={menu.label}>
         <button ref={(element) => { triggers.current[index] = element; }} role="menuitem" aria-haspopup="menu" aria-expanded={open === index} aria-controls={`portal-menu-${index}`} tabIndex={focused === index ? 0 : -1} className={`menu-trigger ${open === index ? 'active' : ''}`} onFocus={() => setFocused(index)} onClick={() => { setOpen(open === index ? null : index); setItemIndex(null); }} onPointerEnter={() => { if (open !== null && open !== index) { setOpen(index); setItemIndex(null); } }} onKeyDown={(event) => {
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setOpen(index); setItemIndex(event.key === 'ArrowUp' ? menu.items.length - 1 : 0); }
           if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + menus.length) % menus.length; setFocused(next); triggers.current[next]?.focus(); if (open !== null) { setOpen(next); setItemIndex(null); } }
-          if (event.key === 'Escape') close(true);
+          if (event.key === 'Escape') { event.preventDefault(); close(true); }
         }}>{menu.label}<span className="menu-chevron" aria-hidden="true">⌄</span></button>
         {open === index && <div role="menu" aria-label={menu.label} id={`portal-menu-${index}`} className="portal-menu" onKeyDown={(event) => {
           const current = Number((event.target as HTMLElement).dataset.item ?? 0);
@@ -77,7 +103,7 @@ export function GuessInput({ excluded, onGuess, onSkip, lastAttempt }: { exclude
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [error, setError] = useState('');
-  const [suggestionSpace, setSuggestionSpace] = useState(280);
+  const [viewport, setViewport] = useState({ listHeight: 280, keyboardInset: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const results = searchServices(query, excluded).slice(0, 50);
@@ -91,20 +117,40 @@ export function GuessInput({ excluded, onGuess, onSkip, lastAttempt }: { exclude
   }, [active, query, expanded]);
   useEffect(() => {
     if (!expanded) return;
+    let frame = 0;
+    let scrollFrame = 0;
     const updateSpace = () => {
-      const top = inputRef.current?.getBoundingClientRect().top ?? 0;
-      setSuggestionSpace(Math.max(0, Math.min(280, top - (window.visualViewport?.offsetTop ?? 0) - 8)));
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(scrollFrame);
+      frame = requestAnimationFrame(() => {
+        const visual = window.visualViewport;
+        const height = visual?.height ?? window.innerHeight;
+        const listHeight = Math.max(96, Math.min(280, height * 0.45));
+        const keyboardInset = Math.max(0, window.innerHeight - height);
+        setViewport({ listHeight, keyboardInset });
+        // The list stays in document flow. Extra keyboard space lets Safari
+        // scroll it into the visual viewport instead of clipping an overlay.
+        scrollFrame = requestAnimationFrame(() => {
+          const input = inputRef.current?.getBoundingClientRect();
+          const list = listRef.current;
+          if (!input || !list) return;
+          const top = visual?.offsetTop ?? 0;
+          const space = Math.min(listHeight, list.scrollHeight);
+          if (input.top < top + 8 || input.bottom + space + 8 > top + height) {
+            const target = top + Math.max(8, (height - input.height - space - 8) / 2);
+            window.scrollBy({ top: input.top - target, behavior: 'instant' });
+          }
+        });
+      });
     };
     updateSpace();
     window.addEventListener('resize', updateSpace);
-    window.addEventListener('scroll', updateSpace, true);
     window.visualViewport?.addEventListener('resize', updateSpace);
-    window.visualViewport?.addEventListener('scroll', updateSpace);
     return () => {
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(scrollFrame);
       window.removeEventListener('resize', updateSpace);
-      window.removeEventListener('scroll', updateSpace, true);
       window.visualViewport?.removeEventListener('resize', updateSpace);
-      window.visualViewport?.removeEventListener('scroll', updateSpace);
     };
   }, [expanded]);
 
@@ -123,18 +169,18 @@ export function GuessInput({ excluded, onGuess, onSkip, lastAttempt }: { exclude
     } else if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
     else if (event.key === 'Enter') { event.preventDefault(); submit(); }
   }
-  return <form className="guess-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
+  return <form className={`guess-form ${expanded ? 'searching' : ''}`} style={{ '--suggestion-height': `${viewport.listHeight}px`, '--keyboard-space': `${expanded ? viewport.keyboardInset : 0}px` } as CSSProperties} onSubmit={(event) => { event.preventDefault(); submit(); }}>
     <label htmlFor="service-search" className="sr-only">Which Azure service is this?</label>
     <div className="guess-input-row">
+      <button type="button" className="portal-button skip-button" onClick={() => { setOpen(false); onSkip(); }} title={lastAttempt ? 'Skip the final attempt and reveal the answer' : 'Skip this attempt to unlock a clue'} aria-label={lastAttempt ? 'Skip and reveal answer' : 'Skip'}>Skip <span aria-hidden="true">›</span></button>
       <div className="autocomplete" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-        <div className="input-shell"><span className="search-symbol" aria-hidden="true">⌕</span><input id="service-search" ref={inputRef} role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls="service-options" aria-activedescendant={expanded && results[active] ? `option-${results[active].id}` : undefined} aria-describedby="search-hint" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} enterKeyHint="go" placeholder="Search Azure services…" value={query} onChange={(event) => { setQuery(event.target.value); setOpen(true); setActive(0); setError(''); }} onFocus={() => setOpen(true)} onKeyDown={onKeyDown}/></div>
-        {expanded && <ul id="service-options" role="listbox" aria-label="Azure services" ref={listRef} className="suggestions" style={{ '--suggestion-space': `${suggestionSpace}px` } as CSSProperties}>
-          {results.map((service, index) => <li id={`option-${service.id}`} key={service.id} role="option" aria-selected={index === active} data-index={index} className={index === active ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => submit(service)} onMouseMove={() => setActive(index)}><span>{service.name.replace(/^Azure\s+/i, '')}</span></li>)}
+        <div className="input-shell"><input id="service-search" ref={inputRef} role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls="service-options" aria-activedescendant={expanded && results[active] ? `option-${results[active].id}` : undefined} aria-describedby="search-hint" autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} enterKeyHint="go" placeholder="Search Azure services…" value={query} onChange={(event) => { setQuery(event.target.value); setOpen(true); setActive(0); setError(''); }} onFocus={() => setOpen(true)} onKeyDown={onKeyDown}/></div>
+        {expanded && <ul id="service-options" role="listbox" aria-label="Azure services" ref={listRef} className="suggestions">
+          {results.map((service, index) => <li id={`option-${service.id}`} key={service.id} role="option" aria-selected={index === active} data-index={index} className={index === active ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => submit(service)}><span>{service.name.replace(/^Azure\s+/i, '')}</span></li>)}
           {!results.length && <li className="no-results" role="presentation">No matching services. Try a shorter name or acronym.</li>}
         </ul>}
       </div>
     </div>
-    <div className="game-actions"><button type="submit" className="portal-button primary">Guess <span aria-hidden="true">↵</span></button><button type="button" className="portal-button" onClick={onSkip} title={lastAttempt ? 'Use the final attempt and reveal the answer' : 'Skip this attempt to unlock a clue'}>{lastAttempt ? 'Reveal answer' : 'Next clue'} <span aria-hidden="true">→</span></button></div>
-    <div id="search-hint" className={error ? 'input-hint error' : 'sr-only'} aria-live="polite">{error || 'Search by name or acronym. The closest match is highlighted. Tap a suggestion or press Enter to guess. Arrow keys change the highlighted match. Next clue uses an attempt.'}</div>
+    <div id="search-hint" className={error ? 'input-hint error' : 'sr-only'} aria-live="polite">{error || 'Search by name or acronym. The first match is highlighted. Tap a suggestion or press Enter to guess. Arrow keys change the highlighted match. Skip uses an attempt.'}</div>
   </form>;
 }

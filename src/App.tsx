@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import catalog from './data/catalog.json' with { type: 'json' };
 import { byId, clueNames, clueText, dailyAnswer, getStats, guessFeedback, isFinished, isWon, makeAttempt, MAX_ATTEMPTS, playable, practiceAnswer, puzzleNumber, readGame, readRecords, resultTiles, searchServices, services, shareText, utcDate, type DailyRecord, type Game, type Mode } from './game';
-import { GuessInput, MenuBar, Modal, ServiceIcon } from './components';
+import { GuessInput, MenuBar, Modal, ServiceIcon, useMediaQuery } from './components';
 
 // Keep the previous six-attempt saves intact and separate from the new rules.
 const STORAGE = 'azurdle:v2:';
@@ -39,12 +39,12 @@ function Statistics({ records, date }: { records: DailyRecord[]; date: string })
 function Help() {
   return <>
     <h2>Guess the Azure service.</h2>
-    <p>Five attempts. Each wrong guess or <strong>Next clue</strong> reveals more.</p>
+    <p>Five attempts. Each wrong guess or <strong>Skip</strong> reveals more.</p>
     <ol className="help-steps">{clueNames.map((name, index) => <li key={name}><span>{index + 1}</span>{name}</li>)}</ol>
     <p>Type a service name. Tap a match or press <strong>Enter</strong> to guess the highlighted result.</p>
     <p><strong className="close-text">Close</strong> means your guess shares a category with the answer, using <a href={catalog.source} target="_blank" rel="noreferrer">Microsoft’s service categories</a>. Close guesses use an attempt and appear yellow in your result grid.</p>
     <p>Daily puzzles reset at midnight UTC. Find unlimited practice under <strong>Game</strong>.</p>
-    <p className="fine-print">Initials omit “Azure”, “Microsoft”, and parenthesized text. Next clue uses an attempt.</p>
+    <p className="fine-print">Initials omit “Azure”, “Microsoft”, and parenthesized text. Skip uses an attempt.</p>
   </>;
 }
 
@@ -115,6 +115,7 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
 }
 
 export default function App() {
+  const compactHeader = useMediaQuery('(max-height: 700px)');
   const [now, setNow] = useState(new Date());
   const date = utcDate(now);
   const [mode, setMode] = useState<Mode>('daily');
@@ -155,10 +156,7 @@ export default function App() {
       <p className="fine-print">Independent educational project. Not affiliated with Microsoft. Product descriptions and icons belong to their respective owners. Catalog: {catalog.fetchedAt.slice(0, 10)}. Unmatched icons use a generic fallback and are excluded from puzzles.</p>
     </> },
   };
-  return <div className="portal-app">
-    <header className="portal-header"><div className="portal-header-inner"><button className="brand" onClick={() => switchMode('daily')} aria-label="Azurdle home"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/><span>Azurdle</span></button><span className="header-caption">Azure service challenge</span></div></header>
-    <main className="game-panel">
-      <MenuBar status={mode === 'daily' ? `Daily #${puzzleNumber(date)}` : 'Practice'} menus={[
+  const navigation = <MenuBar compact={compactHeader} status={mode === 'daily' ? `Daily #${puzzleNumber(date)}` : 'Practice'} menus={[
         { label: 'Game', items: [
           { label: 'Daily', icon: 'globe', checked: mode === 'daily', action: () => switchMode('daily') },
           { label: 'Practice', icon: 'play', checked: mode === 'practice', action: () => switchMode('practice') },
@@ -172,7 +170,11 @@ export default function App() {
           { label: 'How to play', icon: 'help', action: () => setDialog('help') },
           { label: 'About Azurdle', icon: 'computer', action: () => setDialog('about') },
         ] },
-      ]}/>
+      ]}/>;
+  return <div className={`portal-app ${compactHeader ? 'compact-header' : ''}`}>
+    <header className="portal-header"><div className="portal-header-inner"><button className="brand" onClick={() => switchMode('daily')} aria-label="Azurdle home"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/><span>Azurdle</span></button>{compactHeader ? navigation : <span className="header-caption">Azure service challenge</span>}</div></header>
+    <main className="game-panel">
+      {!compactHeader && navigation}
       <div className="game-content"><GamePanel key={mode === 'daily' ? `daily-${date}` : practiceId} mode={mode} date={date} practiceId={practiceId} onNewPractice={newPractice} onRecord={record}/></div>
     </main>
     {dialog && <Modal title={dialogs[dialog].title} wide={dialog === 'directory'} actionLabel={dialog === 'welcome' ? "Let's do it" : 'OK'} onClose={closeDialog}>{dialogs[dialog].body}</Modal>}

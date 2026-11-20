@@ -15,11 +15,12 @@ The welcome is remembered in this browser.
 
 1. Identify a service from its official icon.
 2. Search by name, acronym, or a supported historical name. Typo-tolerant search
-   highlights the closest match. Tap a suggestion, press **Enter**, or use
-   **Guess** to submit it immediately; arrow keys change the highlighted match.
-   Suggestions omit the leading “Azure” and are text-only. On mobile they open
-   above the input and size to the space visible above the keyboard.
-3. Each wrong guess or **Next clue** consumes one of five attempts and reveals a clue:
+   highlights the closest match. Tap/click a suggestion or press **Enter** to
+   submit it immediately; arrow keys change the highlighted match.
+   Suggestions omit the leading “Azure” and are text-only. They appear below
+   the input in a scrollable, in-flow list. Visual-viewport sizing and keyboard
+   scroll space keep suggestions reachable in mobile Safari.
+3. Each wrong guess or **Skip** consumes one of five attempts and reveals a clue:
    **icon → categories → initials → description preview → full description**.
 4. Each hint has its own row, with future hints grayed out. Your numbered guess
    and its service icon appear beneath the hint used. Skips are numbered too.
@@ -38,8 +39,9 @@ Sources: [Azure product categories](https://azure.microsoft.com/en-us/products/)
 
 Use the command-bar menus: **Game** for daily/practice, **View** for statistics and the
 service directory, and **Help** for instructions and credits. Menus support
-arrow keys, Enter, and Escape. The main screen keeps only the icon, clues,
-search, and large **Guess / Next clue** buttons.
+arrow keys, Enter, and Escape. **Skip** sits beside search; guesses are submitted
+only through the suggestions or Enter. On screens up to 700px tall, navigation
+and the daily number merge into the top bar. Narrow layouts use a hamburger menu.
 Hint text sits beside its label, with guesses underneath. The icon is also
 inline on screens up to 800px tall; taller screens give it a full-width row.
 Short screens use tighter spacing to keep the primary controls in reach.
@@ -63,14 +65,16 @@ npm run dev
 ```sh
 npm test                          # Game rules, scheduling, catalog, persistence, stats
 npm run build                     # TypeScript check and production build
-npx playwright install chromium
+npx playwright install --with-deps chromium webkit
 npm run test:e2e                  # Desktop + mobile browser scenarios
 npm run preview
 ```
 
 Browser tests cover keyboard search, wins/losses, progressive clues, result
 sharing, reloading, stats, UTC rollover, unavailable storage, directory filters,
-short-screen layouts, and keyboard-accessible portal menus. Service icons are bundled
+short-screen layouts, and keyboard-accessible portal menus. WebKit tests cover
+suggestion placement, a simulated keyboard viewport, and compact navigation.
+Service icons are bundled
 locally; the interface uses system fonts.
 
 ## Catalog and scraper

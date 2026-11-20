@@ -1,8 +1,16 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { clueText, dailyAnswer, services } from '../../src/game';
 
 const date = '2026-11-20';
 const answer = dailyAnswer(date);
+async function revealNavigation(page: Page) {
+  const toggle = page.getByRole('button', { name: 'Open navigation' });
+  if (await toggle.isVisible() && await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+}
+async function openMenu(page: Page, name: string) {
+  await revealNavigation(page);
+  await page.getByRole('menuitem', { name, exact: true }).click();
+}
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date(`${date}T12:00:00Z`) });
   await page.goto('/');
@@ -33,7 +41,7 @@ test('icon-only start, keyboard autocomplete, win, persistence, stats, and share
   await expect(page.locator('.hint-row.locked')).toHaveCount(4);
   await page.reload();
   await expect(page.getByRole('region', { name: 'Game result' })).toBeVisible();
-  await page.getByRole('menuitem', { name: 'View', exact: true }).click();
+  await openMenu(page, 'View');
   await page.getByRole('menuitem', { name: 'Statistics', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('100%');
   await page.getByRole('button', { name: 'OK', exact: true }).click();
@@ -60,14 +68,14 @@ test('wrong guesses and skips progressively unlock the full description and loss
   await expect(page.getByRole('region', { name: 'Icon hint' }).getByLabel('Not quite')).toBeVisible();
   await page.reload();
   await expect(page.getByLabel('4 attempts remaining', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Next clue' }).click();
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Category hint' }).locator('.hint-guess')).toContainText('Skipped');
   await expect(page.locator('.initials-clue')).toHaveText(clueText(answer, 2));
   await expect(page.getByRole('region', { name: 'Mystery service clues' })).not.toContainText('▰');
-  for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Next clue' }).click();
+  for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Description hint' })).toContainText(answer.description);
   await expect(page.getByLabel('1 attempt remaining', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Reveal answer' }).click();
+  await page.getByRole('button', { name: 'Skip and reveal answer' }).click();
   await expect(page.getByRole('region', { name: 'Game result' })).toContainText('Out of guesses');
   await expect(page.locator('.hint-guess')).toHaveCount(5);
   await expect(page.getByRole('group', { name: 'Shareable result grid' })).toHaveText('🟥⬜⬜⬜⬜');
@@ -81,7 +89,7 @@ test('wrong guesses and skips progressively unlock the full description and loss
 test('directory, no matches, dialog keyboard dismissal, and portal navigation', async ({ page }) => {
   await page.getByRole('combobox', { name: 'Which Azure service is this?' }).fill('zzzzzz-not-a-service');
   await expect(page.getByText('No matching services. Try a shorter name or acronym.')).toBeVisible();
-  await page.getByRole('menuitem', { name: 'View', exact: true }).click();
+  await openMenu(page, 'View');
   await page.getByRole('menuitem', { name: 'Service directory', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search directory' }).fill('AKS');
   await expect(page.getByRole('dialog').getByRole('link', { name: /Azure Kubernetes Service/ })).toBeVisible();
@@ -89,7 +97,7 @@ test('directory, no matches, dialog keyboard dismissal, and portal navigation', 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Identify this Azure service' })).toBeVisible();
-  await page.getByRole('menuitem', { name: 'Game', exact: true }).click();
+  await openMenu(page, 'Game');
   await page.getByRole('menuitem', { name: 'New practice', exact: true }).click();
   await expect(page.getByText('Practice', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Azurdle home' }).click();
@@ -98,7 +106,7 @@ test('directory, no matches, dialog keyboard dismissal, and portal navigation', 
 });
 
 test('UTC midnight rolls daily puzzle over while retaining prior progress', async ({ page }) => {
-  await page.getByRole('button', { name: 'Next clue' }).click();
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await page.clock.setSystemTime(new Date('2026-11-20T23:59:59Z'));
   await page.clock.runFor(2000);
   await expect(page.getByText('Daily #2', { exact: true })).toBeVisible();
@@ -110,11 +118,12 @@ test('renders with unavailable browser storage', async ({ page }) => {
   await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new Error('Storage disabled'); }; });
   await page.reload();
   await expect(page.getByText('Browser storage is unavailable.', { exact: false })).toBeVisible();
-  await page.getByRole('button', { name: 'Next clue' }).click();
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
   await expect(page.getByLabel('4 attempts remaining', { exact: true })).toBeVisible();
 });
 
 test('portal menus support keyboard navigation, mode switching, and dismissal', async ({ page }) => {
+  await revealNavigation(page);
   const gameMenu = page.getByRole('menuitem', { name: 'Game', exact: true });
   await gameMenu.focus();
   await page.keyboard.press('ArrowDown');
@@ -123,30 +132,39 @@ test('portal menus support keyboard navigation, mode switching, and dismissal', 
   await page.keyboard.press('Enter');
   await expect(page.getByText('Practice', { exact: true })).toBeVisible();
   await expect(page.getByRole('menu')).toHaveCount(0);
+  await revealNavigation(page);
   await gameMenu.focus();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('menuitem', { name: 'Statistics', exact: true })).toBeFocused();
   await page.keyboard.press('Escape');
-  await expect(page.getByRole('menuitem', { name: 'View', exact: true })).toBeFocused();
+  if (await page.getByRole('button', { name: 'Open navigation' }).isVisible()) {
+    await expect(page.getByRole('button', { name: 'Open navigation' })).toBeFocused();
+  } else {
+    await expect(page.getByRole('menuitem', { name: 'View', exact: true })).toBeFocused();
+  }
   await expect(page.getByRole('menu')).toHaveCount(0);
+  await revealNavigation(page);
   await gameMenu.click();
   await page.getByRole('menuitemradio', { name: 'Daily', exact: true }).click();
   await expect(page.getByText('Daily #1', { exact: true })).toBeVisible();
-  await page.getByRole('menuitem', { name: 'Help', exact: true }).click();
+  await openMenu(page, 'Help');
   await page.getByRole('region', { name: 'Description hint', exact: true }).click();
   await expect(page.getByRole('menu')).toHaveCount(0);
-  for (const name of ['Guess', 'Next clue']) {
-    const box = await page.getByRole('button', { name, exact: true }).boundingBox();
-    expect(box!.height).toBeGreaterThanOrEqual(44);
-  }
+  const skip = await page.getByRole('button', { name: 'Skip', exact: true }).boundingBox();
+  const input = await page.getByRole('combobox').boundingBox();
+  expect(skip!.height).toBeGreaterThanOrEqual(44);
+  expect(skip!.x + skip!.width).toBeLessThan(input!.x);
+  await expect(page.getByRole('button', { name: 'Guess', exact: true })).toHaveCount(0);
 });
 
 test('short screens keep primary actions and navigation accessible', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 600 });
-  const guess = await page.getByRole('button', { name: 'Guess', exact: true }).boundingBox();
-  expect(guess!.y + guess!.height).toBeLessThan(600);
-  await page.getByRole('menuitem', { name: 'Game', exact: true }).click();
+  const input = await page.getByRole('combobox').boundingBox();
+  expect(input!.y + input!.height).toBeLessThan(600);
+  await expect(page.locator('.portal-header').getByRole('navigation')).toBeVisible();
+  await expect(page.locator('.game-panel').getByRole('navigation')).toHaveCount(0);
+  await openMenu(page, 'Game');
   await page.getByRole('menuitemradio', { name: 'Practice', exact: true }).click();
   await expect(page.getByText('Practice', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Identify this Azure service' })).toBeVisible();
@@ -161,8 +179,7 @@ test('fuzzy matches highlight, tap submits once, and close guesses share yellow 
   const listBox = await page.getByRole('listbox').boundingBox();
   const inputBox = await search.boundingBox();
   if (isMobile) {
-    expect(listBox!.y + listBox!.height).toBeLessThanOrEqual(inputBox!.y);
-    expect(listBox!.y).toBeGreaterThanOrEqual(0);
+    expect(listBox!.y).toBeGreaterThanOrEqual(inputBox!.y + inputBox!.height);
     await option.tap();
   } else {
     expect(listBox!.y).toBeGreaterThan(inputBox!.y);
@@ -193,7 +210,6 @@ test('arrow keys change the submitted suggestion and empty searches do not guess
   await expect(page.locator('.hint-guess')).toHaveCount(1);
   await expect(page.locator('.hint-guess')).toContainText(secondName);
   await search.fill('zzzz-not-a-service');
-  await search.press('Escape');
-  await page.getByRole('button', { name: 'Guess', exact: true }).click();
+  await search.press('Enter');
   await expect(page.locator('.hint-guess')).toHaveCount(1);
 });
