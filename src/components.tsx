@@ -1,0 +1,71 @@
+import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent } from 'react';
+import { searchServices, type Service } from './game';
+
+export function PixelIcon({ kind, size = 32 }: { kind: 'computer' | 'folder' | 'help' | 'stats' | 'globe' | 'play'; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className={`pixel-icon ${kind}`}>
+    {kind === 'computer' && <><path fill="#d5d7db" stroke="#4b566c" d="M3 3h25v19H3zM11 23h10v4H11zM5 27h22v3H5z"/><path fill="#124ab3" d="M6 6h19v13H6z"/><path fill="#7bc4f3" d="m7 7 17 1-17 9z"/><path stroke="white" d="M4 4h23M4 4v17"/><path fill="#50ce4b" d="M24 20h2v1h-2z"/></>}
+    {kind === 'folder' && <><path fill="#e6ac37" stroke="#95652b" d="M2 7h12l3 4h13v17H2z"/><path fill="#ffda74" stroke="#b8872c" d="M2 12h28l-3 16H2z"/><path stroke="#fff3b7" d="M4 14h23"/></>}
+    {kind === 'help' && <><circle cx="16" cy="16" r="13" fill="#2877d7" stroke="#12458b"/><path fill="#7dbaff" d="M6 12a11 11 0 0 1 19-5C15 4 11 10 6 12"/><text x="16" y="24" textAnchor="middle" fill="white" fontSize="25" fontWeight="bold" fontFamily="Tahoma">?</text></>}
+    {kind === 'stats' && <><path fill="#f8fafc" stroke="#777" d="M4 3h23v26H4z"/><path fill="#65af3f" stroke="#3c7822" d="M8 18h4v8H8z"/><path fill="#62a7ed" stroke="#3267ac" d="M14 12h4v14h-4z"/><path fill="#f3bb46" stroke="#b3832a" d="M20 7h4v19h-4z"/></>}
+    {kind === 'globe' && <><circle cx="16" cy="16" r="13" fill="#388ce0" stroke="#235ba3"/><path fill="#8ac85d" d="m7 6 8-2 2 5-6 4-4-1zm11 8 8-4 3 8-8 9-5-7zM5 17l7 2 2 8-6-3z"/><ellipse cx="16" cy="16" rx="8" ry="13" fill="none" stroke="#ffffff60"/><path stroke="#ffffff60" d="M3 16h26M6 8h20M6 24h20"/></>}
+    {kind === 'play' && <><circle cx="16" cy="16" r="13" fill="#63aa38" stroke="#356a21"/><path fill="#a4da71" d="M6 12a11 11 0 0 1 19-5C15 4 11 10 6 12"/><path fill="white" stroke="#3f7a20" d="m12 8 13 8-13 8z"/></>}
+  </svg>;
+}
+
+export function ServiceIcon({ service, mystery = false }: { service: Service; mystery?: boolean }) {
+  return <img className="service-icon" src={`${import.meta.env.BASE_URL}${service.icon}`} alt={mystery ? 'Mystery Azure service icon' : ''} draggable="false" />;
+}
+
+export function TitleBar({ title, children }: { title: string; children?: ReactNode }) {
+  return <div className="title-bar"><div className="title-bar-text"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />{title}</div><div className="window-controls">{children}</div></div>;
+}
+
+export function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
+  return <dialog ref={ref} className={`xp-window modal ${wide ? 'wide' : ''}`} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <TitleBar title={title}><button className="close-control" onClick={onClose} aria-label="Close dialog">×</button></TitleBar>
+    <div className="modal-body">{children}</div>
+    <div className="modal-footer"><button className="xp-button" onClick={onClose}>OK</button></div>
+  </dialog>;
+}
+
+export function GuessInput({ excluded, onGuess }: { excluded: string[]; onGuess: (id: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [selected, setSelected] = useState<Service | null>(null);
+  const [error, setError] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const results = searchServices(query, excluded).slice(0, 50);
+  const expanded = open && !selected;
+  useEffect(() => { listRef.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' }); }, [active]);
+
+  function choose(service: Service) { setSelected(service); setQuery(service.name); setOpen(false); setError(''); inputRef.current?.focus(); }
+  function submit() {
+    if (!selected) { setOpen(true); setError('Choose a service from the list first.'); inputRef.current?.focus(); return; }
+    onGuess(selected.id); setSelected(null); setQuery(''); setOpen(false); setActive(0); setError(''); inputRef.current?.focus();
+  }
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault(); setOpen(true); setSelected(null);
+      setActive((index) => Math.max(0, Math.min(results.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1))));
+    } else if (event.key === 'Escape') { event.preventDefault(); setOpen(false); }
+    else if (event.key === 'Enter' && expanded && results[active]) { event.preventDefault(); choose(results[active]); }
+  }
+  return <form className="guess-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
+    <label htmlFor="service-search">Which Azure service is this?</label>
+    <div className="guess-input-row">
+      <div className="autocomplete" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
+        <div className="input-shell"><span className="search-symbol" aria-hidden="true">⌕</span><input id="service-search" ref={inputRef} role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls="service-options" aria-activedescendant={expanded && results[active] ? `option-${results[active].id}` : undefined} aria-describedby="search-hint" autoComplete="off" placeholder="Start typing a service name…" value={query} onChange={(event) => { setQuery(event.target.value); setSelected(null); setOpen(true); setActive(0); setError(''); }} onFocus={() => { if (!selected) setOpen(true); }} onKeyDown={onKeyDown}/>{selected && <span className="selected-check" aria-label="Service selected">✓</span>}</div>
+        {expanded && <ul id="service-options" role="listbox" aria-label="Azure services" ref={listRef} className="suggestions">
+          {results.map((service, index) => <li id={`option-${service.id}`} key={service.id} role="option" aria-selected={index === active} data-index={index} className={index === active ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(service)} onMouseMove={() => setActive(index)}><ServiceIcon service={service}/><span><strong>{service.name}</strong><small>{service.categories[0]}{!service.playable ? ' · Generic icon' : ''}</small></span></li>)}
+          {!results.length && <li className="no-results" role="presentation">No matching services. Try a shorter name or acronym.</li>}
+        </ul>}
+      </div>
+      <button type="submit" className="xp-button primary guess-button">Guess <span aria-hidden="true">↵</span></button>
+    </div>
+    <div id="search-hint" className={`input-hint ${error ? 'error' : ''}`} aria-live="polite">{error || 'Search by name or acronym. ↑ ↓ to browse, Enter to select.'}</div>
+  </form>;
+}

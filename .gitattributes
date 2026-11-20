@@ -1,0 +1,4 @@
+# Preserve Microsoft's original SVG files, including their whitespace.
+public/icons/*.svg -whitespace linguist-vendored
+src/data/*.json linguist-generated
+package-lock.json linguist-generated
