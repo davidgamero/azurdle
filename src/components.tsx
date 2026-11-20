@@ -20,6 +20,51 @@ export function TitleBar({ title, children }: { title: string; children?: ReactN
   return <div className="title-bar"><div className="title-bar-text"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />{title}</div><div className="window-controls">{children}</div></div>;
 }
 
+type MenuItem = { label: string; icon: Parameters<typeof PixelIcon>[0]['kind']; action: () => void; checked?: boolean; divider?: boolean };
+export function MenuBar({ menus, status }: { menus: { label: string; items: MenuItem[] }[]; status: string }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const [focused, setFocused] = useState(0);
+  const ref = useRef<HTMLElement>(null);
+  const triggers = useRef<(HTMLButtonElement | null)[]>([]);
+  const [itemIndex, setItemIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (open === null) return;
+    const dismiss = (event: PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(null); };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, [open]);
+  useEffect(() => {
+    if (open !== null && itemIndex !== null) ref.current?.querySelector<HTMLButtonElement>(`[data-menu="${open}"][data-item="${itemIndex}"]`)?.focus();
+  }, [open, itemIndex]);
+
+  function close(restore = false) { if (restore && open !== null) triggers.current[open]?.focus(); setOpen(null); setItemIndex(null); }
+  function moveMenu(index: number) {
+    const next = (index + menus.length) % menus.length;
+    setFocused(next); setOpen(next); setItemIndex(0);
+  }
+  return <nav ref={ref} className="menu-bar" aria-label="Application menu" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) close(); }}>
+    <div role="menubar" aria-label="Azurdle menus" className="menu-bar-items">
+      {menus.map((menu, index) => <div className="menu-group" key={menu.label}>
+        <button ref={(element) => { triggers.current[index] = element; }} role="menuitem" aria-haspopup="menu" aria-expanded={open === index} aria-controls={`xp-menu-${index}`} tabIndex={focused === index ? 0 : -1} className={`menu-trigger ${open === index ? 'active' : ''}`} onFocus={() => setFocused(index)} onClick={() => { setOpen(open === index ? null : index); setItemIndex(null); }} onPointerEnter={() => { if (open !== null && open !== index) { setOpen(index); setItemIndex(null); } }} onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setOpen(index); setItemIndex(event.key === 'ArrowUp' ? menu.items.length - 1 : 0); }
+          if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + menus.length) % menus.length; setFocused(next); triggers.current[next]?.focus(); if (open !== null) { setOpen(next); setItemIndex(null); } }
+          if (event.key === 'Escape') close(true);
+        }}>{menu.label}</button>
+        {open === index && <div role="menu" aria-label={menu.label} id={`xp-menu-${index}`} className="xp-menu" onKeyDown={(event) => {
+          const current = Number((event.target as HTMLElement).dataset.item ?? 0);
+          if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); setItemIndex(event.key === 'Home' ? 0 : event.key === 'End' ? menu.items.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + menu.items.length) % menu.items.length); }
+          if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); moveMenu(index + (event.key === 'ArrowRight' ? 1 : -1)); }
+          if (event.key === 'Escape') { event.preventDefault(); close(true); }
+        }}>
+          {menu.items.map((item, itemNumber) => <button key={item.label} role={item.checked === undefined ? 'menuitem' : 'menuitemradio'} aria-checked={item.checked} tabIndex={-1} data-menu={index} data-item={itemNumber} className={item.divider ? 'menu-divider' : ''} onClick={() => { close(true); item.action(); }}><PixelIcon kind={item.icon} size={25}/><span>{item.label}</span>{item.checked && <span className="menu-check" aria-hidden="true">✓</span>}</button>)}
+        </div>}
+      </div>)}
+    </div>
+    <span className="menu-status">{status}</span>
+  </nav>;
+}
+
 export function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
@@ -30,7 +75,7 @@ export function Modal({ title, children, onClose, wide = false }: { title: strin
   </dialog>;
 }
 
-export function GuessInput({ excluded, onGuess }: { excluded: string[]; onGuess: (id: string) => void }) {
+export function GuessInput({ excluded, onGuess, onSkip, lastAttempt }: { excluded: string[]; onGuess: (id: string) => void; onSkip: () => void; lastAttempt: boolean }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -55,17 +100,17 @@ export function GuessInput({ excluded, onGuess }: { excluded: string[]; onGuess:
     else if (event.key === 'Enter' && expanded && results[active]) { event.preventDefault(); choose(results[active]); }
   }
   return <form className="guess-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
-    <label htmlFor="service-search">Which Azure service is this?</label>
+    <label htmlFor="service-search" className="sr-only">Which Azure service is this?</label>
     <div className="guess-input-row">
       <div className="autocomplete" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-        <div className="input-shell"><span className="search-symbol" aria-hidden="true">⌕</span><input id="service-search" ref={inputRef} role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls="service-options" aria-activedescendant={expanded && results[active] ? `option-${results[active].id}` : undefined} aria-describedby="search-hint" autoComplete="off" placeholder="Start typing a service name…" value={query} onChange={(event) => { setQuery(event.target.value); setSelected(null); setOpen(true); setActive(0); setError(''); }} onFocus={() => { if (!selected) setOpen(true); }} onKeyDown={onKeyDown}/>{selected && <span className="selected-check" aria-label="Service selected">✓</span>}</div>
+        <div className="input-shell"><span className="search-symbol" aria-hidden="true">⌕</span><input id="service-search" ref={inputRef} role="combobox" aria-autocomplete="list" aria-expanded={expanded} aria-controls="service-options" aria-activedescendant={expanded && results[active] ? `option-${results[active].id}` : undefined} aria-describedby="search-hint" autoComplete="off" placeholder="Search Azure services…" value={query} onChange={(event) => { setQuery(event.target.value); setSelected(null); setOpen(true); setActive(0); setError(''); }} onFocus={() => { if (!selected) setOpen(true); }} onKeyDown={onKeyDown}/>{selected && <span className="selected-check" aria-label="Service selected">✓</span>}</div>
         {expanded && <ul id="service-options" role="listbox" aria-label="Azure services" ref={listRef} className="suggestions">
-          {results.map((service, index) => <li id={`option-${service.id}`} key={service.id} role="option" aria-selected={index === active} data-index={index} className={index === active ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(service)} onMouseMove={() => setActive(index)}><ServiceIcon service={service}/><span><strong>{service.name}</strong><small>{service.categories[0]}{!service.playable ? ' · Generic icon' : ''}</small></span></li>)}
+          {results.map((service, index) => <li id={`option-${service.id}`} key={service.id} role="option" aria-selected={index === active} data-index={index} className={index === active ? 'active' : ''} onMouseDown={(event) => event.preventDefault()} onClick={() => choose(service)} onMouseMove={() => setActive(index)}><ServiceIcon service={service}/><span><strong>{service.name}</strong>{!service.playable && <small>Generic icon</small>}</span></li>)}
           {!results.length && <li className="no-results" role="presentation">No matching services. Try a shorter name or acronym.</li>}
         </ul>}
       </div>
-      <button type="submit" className="xp-button primary guess-button">Guess <span aria-hidden="true">↵</span></button>
     </div>
-    <div id="search-hint" className={`input-hint ${error ? 'error' : ''}`} aria-live="polite">{error || 'Search by name or acronym. ↑ ↓ to browse, Enter to select.'}</div>
+    <div className="game-actions"><button type="submit" className="xp-button primary">Guess <span aria-hidden="true">↵</span></button><button type="button" className="xp-button" onClick={onSkip} title={lastAttempt ? 'Use the final attempt and reveal the answer' : 'Skip this attempt to unlock a clue'}>{lastAttempt ? 'Reveal answer' : 'Next clue'} <span aria-hidden="true">→</span></button></div>
+    <div id="search-hint" className={error ? 'input-hint error' : 'sr-only'} aria-live="polite">{error || 'Search by name or acronym. Arrow keys to browse, Enter to select. Next clue uses an attempt.'}</div>
   </form>;
 }

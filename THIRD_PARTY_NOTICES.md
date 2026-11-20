@@ -25,11 +25,6 @@ links to the original product pages. They are not original Azurdle content and
 are not relicensed under the MIT license. The catalog records its retrieval
 date and source URLs.
 
-## DM Sans
-
-DM Sans is bundled locally via `@fontsource-variable/dm-sans`, under the SIL
-Open Font License 1.1. See `public/fonts/OFL.txt` for the license.
-
 ## Original artwork
 
 Azurdle's app icon, desktop shortcut illustrations, generic service fallback,

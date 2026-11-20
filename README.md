@@ -4,7 +4,7 @@
 
 [Play Azurdle](https://davidgamero.github.io/azurdle/)
 
-A daily Azure-service guessing game wrapped in an original XP-inspired desktop.
+A daily Azure-service guessing game in a compact XP-inspired window.
 Built with React, TypeScript, and Vite. Runs entirely on static GitHub Pages:
 no backend, account, API keys, or runtime requests to Microsoft.
 
@@ -13,9 +13,14 @@ no backend, account, API keys, or runtime requests to Microsoft.
 1. Identify a service from its official icon.
 2. Search by name, acronym, or a supported historical name. Select a result and
    press **Guess**. Autocomplete includes icons and keyboard navigation.
-3. Each wrong guess or skip consumes one of six attempts and reveals a clue:
+3. Each wrong guess or **Next clue** consumes one of six attempts and reveals a clue:
    **icon → categories → word lengths → initials → description preview → full description**.
 4. Share a spoiler-free result, or keep learning in unlimited practice mode.
+
+Use the XP menus: **Game** for daily/practice, **View** for statistics and the
+service directory, and **Help** for instructions and credits. Menus support
+arrow keys, Enter, and Escape. The main screen keeps only the icon, clues,
+search, and large **Guess / Next clue** buttons.
 
 The daily service is the same for everyone and changes at **00:00 UTC**.
 Daily progress, stats, and practice progress are saved in browser local storage.
@@ -41,7 +46,8 @@ npm run preview
 
 Browser tests cover keyboard search, wins/losses, progressive clues, result
 sharing, reloading, stats, UTC rollover, unavailable storage, directory filters,
-and window controls. The app uses locally bundled icons and fonts.
+window controls, and keyboard-accessible XP menus. Service icons are bundled
+locally; the interface uses system fonts.
 
 ## Catalog and scraper
 
@@ -94,7 +100,7 @@ code changes are needed.
 ## License and credits
 
 Original code/artwork: MIT. Microsoft service icons and product descriptions
-retain their original terms. DM Sans: SIL OFL 1.1.
+retain their original terms.
 See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Independent educational fan project; not affiliated with Microsoft.
