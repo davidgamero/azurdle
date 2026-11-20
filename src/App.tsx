@@ -7,7 +7,7 @@ import { GuessInput, MenuBar, Modal, ServiceIcon } from './components';
 const STORAGE = 'azurdle:v2:';
 function load(key: string) { try { return localStorage.getItem(STORAGE + key); } catch { return null; } }
 function save(key: string, value: unknown) { try { localStorage.setItem(STORAGE + key, JSON.stringify(value)); return true; } catch { return false; } }
-type Dialog = 'help' | 'stats' | 'directory' | 'about' | null;
+type Dialog = 'welcome' | 'help' | 'stats' | 'directory' | 'about' | null;
 
 function Directory() {
   const [query, setQuery] = useState('');
@@ -119,7 +119,7 @@ export default function App() {
     try { const id = JSON.parse(load('practice') ?? 'null')?.answerId; if (byId.get(id)?.playable) return id as string; } catch { /* Start a fresh practice puzzle. */ }
     return practiceAnswer().id;
   });
-  const [dialog, setDialog] = useState<Dialog>(null);
+  const [dialog, setDialog] = useState<Dialog>(() => load('welcomeSeen') === 'true' ? null : 'welcome');
   const [records, setRecords] = useState(() => readRecords(load('records')));
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -136,7 +136,12 @@ export default function App() {
   }
   function switchMode(next: Mode) { setMode(next); }
   function newPractice() { setPracticeId(practiceAnswer(practiceId).id); switchMode('practice'); }
+  function closeDialog() {
+    if (dialog === 'welcome') save('welcomeSeen', true);
+    setDialog(null);
+  }
   const dialogs: Record<Exclude<Dialog, null>, { title: string; body: ReactNode }> = {
+    welcome: { title: 'Welcome to Azurdle!', body: <div className="welcome-body"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/><p>Guess the daily Azure service</p></div> },
     help: { title: 'How to play', body: <Help/> },
     stats: { title: 'Statistics', body: <Statistics records={records} date={date}/> },
     directory: { title: 'Azure services', body: <Directory/> },
@@ -167,6 +172,6 @@ export default function App() {
       ]}/>
       <div className="game-content"><GamePanel key={mode === 'daily' ? `daily-${date}` : practiceId} mode={mode} date={date} practiceId={practiceId} onNewPractice={newPractice} onRecord={record}/></div>
     </main>
-    {dialog && <Modal title={dialogs[dialog].title} wide={dialog === 'directory'} onClose={() => setDialog(null)}>{dialogs[dialog].body}</Modal>}
+    {dialog && <Modal title={dialogs[dialog].title} wide={dialog === 'directory'} actionLabel={dialog === 'welcome' ? "Let's do it" : 'OK'} onClose={closeDialog}>{dialogs[dialog].body}</Modal>}
   </div>;
 }

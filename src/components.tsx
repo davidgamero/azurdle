@@ -61,14 +61,14 @@ export function MenuBar({ menus, status }: { menus: { label: string; items: Menu
   </nav>;
 }
 
-export function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
+export function Modal({ title, children, onClose, wide = false, actionLabel = 'OK' }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean; actionLabel?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
   return <dialog ref={ref} aria-labelledby={titleId} className={`modal ${wide ? 'wide' : ''}`} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="dialog-header"><h2 id={titleId}>{title}</h2><button className="close-control" onClick={onClose} aria-label="Close dialog">×</button></div>
     <div className="modal-body">{children}</div>
-    <div className="modal-footer"><button className="portal-button primary" onClick={onClose}>OK</button></div>
+    <div className="modal-footer"><button className="portal-button primary" onClick={onClose}>{actionLabel}</button></div>
   </dialog>;
 }
 

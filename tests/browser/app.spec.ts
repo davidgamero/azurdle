@@ -6,6 +6,8 @@ const answer = dailyAnswer(date);
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date(`${date}T12:00:00Z`) });
   await page.goto('/');
+  await expect(page.getByRole('dialog', { name: 'Welcome to Azurdle!' })).toContainText('Guess the daily Azure service');
+  await page.getByRole('button', { name: "Let's do it", exact: true }).click();
 });
 
 test('icon-only start, keyboard autocomplete, win, persistence, stats, and share', async ({ page, context }) => {
@@ -40,8 +42,10 @@ test('icon-only start, keyboard autocomplete, win, persistence, stats, and share
   await page.getByRole('button', { name: 'Copy result' }).click();
   await expect(page.getByText('Copied!')).toBeVisible();
   const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text.split('\n')[0]).toBe('Azurdle #1 (2026-11-20)  1/5');
   expect(text).toContain('1/5');
   expect(text.split('\n')[1]).toBe('🟩⬛⬛⬛⬛');
+  expect(text.split('\n')[2]).toBe(new URL('./', page.url()).href);
   await expect(page.getByRole('group', { name: 'Shareable result grid' }).getByRole('img')).toHaveCount(5);
   expect(text).not.toContain(answer.name);
   expect(errors).toEqual([]);
@@ -132,7 +136,7 @@ test('portal menus support keyboard navigation, mode switching, and dismissal', 
   await page.getByRole('menuitemradio', { name: 'Daily', exact: true }).click();
   await expect(page.getByText('Daily #1', { exact: true })).toBeVisible();
   await page.getByRole('menuitem', { name: 'Help', exact: true }).click();
-  await page.getByRole('img', { name: 'Mystery Azure service icon' }).click();
+  await page.getByRole('region', { name: 'Description hint', exact: true }).click();
   await expect(page.getByRole('menu')).toHaveCount(0);
   for (const name of ['Guess', 'Next clue']) {
     const box = await page.getByRole('button', { name, exact: true }).boundingBox();

@@ -10,6 +10,9 @@ no backend, account, API keys, or runtime requests to Microsoft.
 
 ## Play
 
+On your first visit, choose **Let's do it** in the welcome dialog to get started.
+The welcome is remembered in this browser.
+
 1. Identify a service from its official icon.
 2. Search by name, acronym, or a supported historical name. Select a result and
    press **Guess**. Search results are text-only, with keyboard navigation.
