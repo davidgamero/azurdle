@@ -103,7 +103,11 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .answer .result-score { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
 .result-panel { margin-top: 24px; }
 .result-grid { display: grid; grid-template-columns: repeat(5, 34px); justify-content: center; gap: 6px; margin: 18px 0; }
-.result-tile { display: grid; place-items: center; font-size: 29px; line-height: 1; min-height: 34px; }
+.result-tile { display: block; height: 34px; border: 1px solid transparent; border-radius: 2px; font-size: 0; }
+.result-tile.correct { background: #6a9c51; }
+.result-tile.wrong { background: #c65a5d; }
+.result-tile.skipped { background: white; border-color: #a6b3bf; }
+.result-tile.unused { background: #435360; }
 .next-puzzle, .share-status { text-align: center; margin: 14px 0 0; color: var(--muted); font-size: 12px; }
 .share-status:empty { display: none; }
 .result-panel textarea { margin-top: 15px; padding: 10px; width: 100%; min-height: 110px; border: 1px solid #9daab7; border-radius: 3px; font-size: 13px; line-height: 1.6; }
