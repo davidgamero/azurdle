@@ -51,21 +51,23 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .game-heading h1 { font-size: 23px; font-weight: 600; letter-spacing: -.5px; color: #253648; margin: 0; }
 .attempt-counter { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hint-rows { border: 1px solid #d7dfe8; border-radius: 4px; overflow: hidden; }
-.hint-row { background: white; border-bottom: 1px solid #e0e5eb; }
+.hint-row { display: grid; grid-template-columns: 124px minmax(0, 1fr); background: white; border-bottom: 1px solid #e0e5eb; }
 .hint-row:last-child { border-bottom: 0; }
 .hint-row.locked { background: #f1f3f5; color: #9099a2; }
+.hint-row.locked .hint-label { grid-column: 1 / -1; }
 .hint-label { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 8px 13px; }
 .hint-label h2 { font-size: 12px; font-weight: 600; margin: 0; }
 .hint-number { width: 18px; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; color: #8c98a4; }
-.hint-row.current .hint-label { background: #eef6fd; color: #0067b8; box-shadow: inset 3px 0 var(--blue); }
+.hint-row.current { background: #eef6fd; box-shadow: inset 3px 0 var(--blue); }
+.hint-row.current .hint-label { color: #0067b8; }
 .hint-row.current .hint-number { color: #0078d4; }
-.hint-content { padding: 0 16px 13px 41px; }
+.hint-content { min-width: 0; padding: 8px 14px 8px 0; align-self: center; overflow-wrap: anywhere; }
 .hint-content p { margin: 0; font-size: 14px; line-height: 1.6; color: #3e5061; }
-.hint-row:first-child .hint-content { padding: 0 12px 10px; }
-.icon-stage { display: flex; justify-content: center; align-items: center; min-height: 112px; }
-.icon-stage .service-icon { width: 80px; height: 80px; object-fit: contain; }
+.hint-row:first-child .hint-label { align-self: center; }
+.icon-stage { display: flex; justify-content: flex-start; align-items: center; min-height: 48px; }
+.icon-stage .service-icon { width: 48px; height: 48px; object-fit: contain; }
 .hint-content .initials-clue { font: 18px/1.6 Consolas, monospace; color: #0067b8; overflow-wrap: anywhere; }
-.hint-guess { display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 41px; border-top: 1px solid #edf0f3; font-size: 13px; line-height: 1.5; background: #fafbfc; }
+.hint-guess { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 41px; border-top: 1px solid #edf0f3; font-size: 13px; line-height: 1.5; background: #fafbfc; }
 .guess-label { white-space: nowrap; flex-shrink: 0; color: var(--muted); }
 .hint-guess .service-icon { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
 .guess-name { min-width: 0; overflow-wrap: anywhere; }
@@ -172,9 +174,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
   .menu-status { font-size: 11px; padding: 5px 7px; }
   .portal-menu { min-width: 205px; }
   .menu-group:last-child .portal-menu { left: auto; right: -65px; }
-  .icon-stage { min-height: 94px; }
-  .icon-stage .service-icon { width: 72px; height: 72px; }
-  .hint-content { padding-left: 20px; }
+  .hint-row { grid-template-columns: 112px minmax(0, 1fr); }
+  .hint-label { padding-left: 10px; padding-right: 8px; gap: 8px; }
+  .hint-content { padding-right: 12px; }
   .hint-guess { padding-left: 20px; }
   .game-actions { gap: 10px; }
   .game-actions .portal-button { font-size: 15px; min-height: 50px; }
@@ -197,9 +199,13 @@ svg { vertical-align: middle; flex-shrink: 0; }
   .portal-app { padding-bottom: 12px; }
   .game-panel { margin-top: 10px; }
   .game-content { padding-top: 18px; padding-bottom: 18px; }
-  .icon-stage { min-height: 76px; }
-  .icon-stage .service-icon { width: 64px; height: 64px; }
   .hint-label { min-height: 34px; padding-top: 6px; padding-bottom: 6px; }
+}
+@media (min-height: 801px) {
+  .hint-row:first-child .hint-label { grid-column: 1 / -1; }
+  .hint-row:first-child .hint-content { grid-column: 1 / -1; padding: 0 12px 12px; }
+  .icon-stage { justify-content: center; min-height: 112px; }
+  .icon-stage .service-icon { width: 80px; height: 80px; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }

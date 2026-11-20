@@ -24,6 +24,8 @@ Use the command-bar menus: **Game** for daily/practice, **View** for statistics 
 service directory, and **Help** for instructions and credits. Menus support
 arrow keys, Enter, and Escape. The main screen keeps only the icon, clues,
 search, and large **Guess / Next clue** buttons.
+Hint text sits beside its label, with guesses underneath. The icon is also
+inline on screens up to 800px tall; taller screens give it a full-width row.
 Short screens use tighter spacing to keep the primary controls in reach.
 
 The daily service is the same for everyone and changes at **00:00 UTC**.
