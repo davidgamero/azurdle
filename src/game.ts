@@ -122,8 +122,18 @@ export function getStats(records: DailyRecord[], today: string) {
     distribution: Array.from({ length: MAX_ATTEMPTS }, (_, index) => wins.filter((record) => record.attempts === index + 1).length) };
 }
 
+export function resultTiles(game: Game) {
+  return Array.from({ length: MAX_ATTEMPTS }, (_, index) => {
+    const attempt = game.attempts[index];
+    if (!attempt) return { state: 'unused', emoji: '⬛', label: 'Unused' };
+    if (attempt.id === game.answerId) return { state: 'correct', emoji: '🟩', label: 'Correct' };
+    if (attempt.id === null) return { state: 'skipped', emoji: '⬜', label: 'Skipped' };
+    return { state: 'wrong', emoji: '🟥', label: 'Incorrect' };
+  });
+}
+
 export function shareText(game: Game, mode: Mode, date: string, url: string): string {
   const label = mode === 'daily' ? `#${puzzleNumber(date)} (${date})` : 'Practice';
-  const tiles = game.attempts.map(({ id }) => id === game.answerId ? '🟩' : id === null ? '⬜' : '🟥').join('');
-  return `Azurdle ${label}  ${isWon(game) ? game.attempts.length : 'X'}/${MAX_ATTEMPTS}\n${tiles}\nA little cloud. A little nostalgia.\n${url}`;
+  const tiles = resultTiles(game).map((tile) => tile.emoji).join('');
+  return `Azurdle ${label}  ${isWon(game) ? game.attempts.length : 'X'}/${MAX_ATTEMPTS}\n${tiles}\n${url}`;
 }

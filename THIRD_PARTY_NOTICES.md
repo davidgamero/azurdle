@@ -27,9 +27,9 @@ date and source URLs.
 
 ## Original artwork
 
-Azurdle's app icon, desktop shortcut illustrations, generic service fallback,
-and CSS landscape are original. No Windows wallpaper or Windows system assets
-are distributed. The interface is inspired by the Windows XP desktop.
+Azurdle's app icon, navigation illustrations, and generic service fallback are
+original. The interface borrows the colors, typography, and flat controls of
+the Azure Portal. It is not the Microsoft Azure Portal.
 
 Azurdle is an independent educational fan project, not affiliated with or
 endorsed by Microsoft.

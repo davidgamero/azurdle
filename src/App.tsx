@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import catalog from './data/catalog.json' with { type: 'json' };
-import { byId, clueNames, clueText, dailyAnswer, getStats, isFinished, isWon, makeAttempt, MAX_ATTEMPTS, playable, practiceAnswer, puzzleNumber, readGame, readRecords, searchServices, services, shareText, utcDate, type DailyRecord, type Game, type Mode } from './game';
-import { GuessInput, MenuBar, Modal, ServiceIcon, TitleBar } from './components';
+import { byId, clueNames, clueText, dailyAnswer, getStats, isFinished, isWon, makeAttempt, MAX_ATTEMPTS, playable, practiceAnswer, puzzleNumber, readGame, readRecords, resultTiles, searchServices, services, shareText, utcDate, type DailyRecord, type Game, type Mode } from './game';
+import { GuessInput, MenuBar, Modal, ServiceIcon } from './components';
 
 // Keep the previous six-attempt saves intact and separate from the new rules.
 const STORAGE = 'azurdle:v2:';
@@ -78,32 +78,33 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
   }
   return <>
     <header className="game-heading">
-      <h1>{finished ? (won ? `Solved in ${game.attempts.length}/${MAX_ATTEMPTS}` : 'Out of guesses') : 'Which service?'}</h1>
+      <h1>Identify this Azure service</h1>
       {!finished && <span className="attempt-counter" aria-label={`${MAX_ATTEMPTS - game.attempts.length} ${MAX_ATTEMPTS - game.attempts.length === 1 ? 'attempt' : 'attempts'} remaining`}>{stage + 1} / {MAX_ATTEMPTS}</span>}
     </header>
-    <section className={`mystery-card ${finished ? 'complete' : ''}`} aria-label="Mystery service clues">
-      <div className="icon-stage"><ServiceIcon service={answer} mystery={!finished}/></div>
-      {finished ? <div className="answer"><h2>{answer.name}</h2><p>{answer.description}</p><a href={answer.url} target="_blank" rel="noreferrer">Learn more ↗</a></div> : <ol className="attempt-track" aria-label="Clue progression">{clueNames.map((name, index) => {
-        const id = game.attempts[index]?.id;
-        return <li key={name} aria-label={`Attempt ${index + 1}: ${index < game.attempts.length ? id ? 'incorrect' : 'skipped' : index === stage ? 'current' : 'unused'}`} className={index < stage ? id ? 'wrong' : 'skipped' : index === stage ? 'current' : ''}><span aria-hidden="true">{index < stage ? id ? '×' : '–' : index + 1}</span></li>;
-      })}</ol>}
-      {!finished && stage > 0 && <section className="revealed-clues" aria-label="Revealed clues">
-        <p className="category-clue"><span className="sr-only">Category: </span>{clueText(answer, 1)}</p>
-        {stage >= 2 && <p className="initials-clue" aria-label={`Initials: ${clueText(answer, 2)}`}><span className="sr-only">Initials: </span>{clueText(answer, 2)}</p>}
-        {stage >= 3 && <p className="description-clue">{clueText(answer, stage === 4 ? 4 : 3)}</p>}
-      </section>}
+    <section className="hint-rows" aria-label="Mystery service clues">
+      {clueNames.map((name, index) => {
+        const guess = game.attempts[index];
+        const unlocked = Boolean(guess) || (!finished && index <= stage);
+        const correct = guess?.id === answer.id;
+        return <section key={name} aria-label={`${name} hint`} className={`hint-row ${unlocked ? 'unlocked' : 'locked'} ${!finished && index === stage ? 'current' : ''}`}>
+          <div className="hint-label"><span className="hint-number" aria-hidden="true">{index + 1}</span><h2>{name}</h2>{!unlocked && <span className="sr-only">Locked</span>}</div>
+          {unlocked && <div className="hint-content">{index === 0 ? <div className="icon-stage"><ServiceIcon service={answer} mystery={!finished}/></div> : <p className={index === 2 ? 'initials-clue' : ''}>{clueText(answer, index)}</p>}</div>}
+          {guess && <div className={`hint-guess ${correct ? 'correct' : guess.id ? 'wrong' : 'skipped'}`}>
+            <span className="sr-only">Your guess: </span><span>{guess.id ? byId.get(guess.id)!.name : 'Skipped'}</span>
+            <span className="guess-result" aria-label={correct ? 'Correct' : guess.id ? 'Not quite' : 'Skipped attempt'}>{correct ? '✓' : guess.id ? '×' : '–'}</span>
+          </div>}
+        </section>;
+      })}
     </section>
     <div role="status" className="sr-only">{announcement}</div>
     {!finished ? <GuessInput excluded={game.attempts.flatMap((attempt) => attempt.id ? [attempt.id] : [])} onGuess={attempt} onSkip={() => attempt(null)} lastAttempt={stage === MAX_ATTEMPTS - 1}/> : <section className="result-panel" aria-label="Game result">
-      <span className="sr-only">{won ? `Solved in ${game.attempts.length}/${MAX_ATTEMPTS}` : 'Out of guesses'}</span>
-      <div className="game-actions"><button className="xp-button primary" onClick={copyResult}>Copy result</button><button className="xp-button" onClick={onNewPractice}>{mode === 'daily' ? 'Try practice' : 'Play again'} <span aria-hidden="true">→</span></button></div>
+      <div className="answer"><p className="result-score">{won ? `Solved in ${game.attempts.length}/${MAX_ATTEMPTS}` : 'Out of guesses'}</p><h2>{answer.name}</h2><a href={answer.url} target="_blank" rel="noreferrer">Learn more ↗</a></div>
+      <div className="result-grid" role="group" aria-label="Shareable result grid">{resultTiles(game).map((tile, index) => <span key={index} className={`result-tile ${tile.state}`} role="img" aria-label={`${clueNames[index]}: ${tile.label}`}><span aria-hidden="true">{tile.emoji}</span></span>)}</div>
+      <div className="game-actions"><button className="portal-button primary" onClick={copyResult}>Copy result</button><button className="portal-button" onClick={onNewPractice}>{mode === 'daily' ? 'Try practice' : 'Play again'} <span aria-hidden="true">→</span></button></div>
       {mode === 'daily' && <p className="next-puzzle">Next daily at 00:00 UTC</p>}
       <div className="share-status" role="status">{share}</div>
       {manualShare && <textarea aria-label="Shareable result" readOnly value={shareValue} onFocus={(event) => event.target.select()}/>}
     </section>}
-    {game.attempts.some(({ id }) => id) && <section className="guess-history" aria-label="Your attempts"><ol className="guess-list">{game.attempts.map(({ id }, index) => id && <li key={index}>
-      <ServiceIcon service={byId.get(id)!}/><span className="guess-name">{byId.get(id)!.name}</span><span className={`guess-result ${id === answer.id ? 'correct' : ''}`} aria-label={id === answer.id ? 'Correct' : 'Not quite'}>{id === answer.id ? '✓' : '×'}</span>
-    </li>)}</ol></section>}
     {storageFailed && <p className="storage-notice" role="status">Browser storage is unavailable. Progress lasts for this session only.</p>}
   </>;
 }
@@ -118,23 +119,12 @@ export default function App() {
   });
   const [dialog, setDialog] = useState<Dialog>(null);
   const [records, setRecords] = useState(() => readRecords(load('records')));
-  const [minimized, setMinimized] = useState(false);
-  const [maximized, setMaximized] = useState(false);
-  const [startOpen, setStartOpen] = useState(false);
-  const startRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     const sync = (event: StorageEvent) => { if (event.key === STORAGE + 'records') setRecords(readRecords(event.newValue)); };
     window.addEventListener('storage', sync);
     return () => { clearInterval(timer); window.removeEventListener('storage', sync); };
   }, []);
-  useEffect(() => {
-    if (!startOpen) return;
-    const click = (event: PointerEvent) => { if (!startRef.current?.contains(event.target as Node)) setStartOpen(false); };
-    const key = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setStartOpen(false); };
-    document.addEventListener('pointerdown', click); document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('pointerdown', click); document.removeEventListener('keydown', key); };
-  }, [startOpen]);
   function record(result: DailyRecord) {
     setRecords((previous) => {
       const merged = readRecords(JSON.stringify([...previous, ...readRecords(load('records')), result]));
@@ -142,9 +132,8 @@ export default function App() {
       save('records', merged); return merged;
     });
   }
-  function switchMode(next: Mode) { setMode(next); setMinimized(false); }
+  function switchMode(next: Mode) { setMode(next); }
   function newPractice() { setPracticeId(practiceAnswer(practiceId).id); switchMode('practice'); }
-  function restore() { setMinimized(false); setStartOpen(false); }
   const dialogs: Record<Exclude<Dialog, null>, { title: string; body: ReactNode }> = {
     help: { title: 'How to play', body: <Help/> },
     stats: { title: 'Statistics', body: <Statistics records={records} date={date}/> },
@@ -156,10 +145,9 @@ export default function App() {
       <p className="fine-print">Independent educational project. Not affiliated with Microsoft. Product descriptions and icons belong to their respective owners. Catalog: {catalog.fetchedAt.slice(0, 10)}. Unmatched icons use a generic fallback and are excluded from puzzles.</p>
     </> },
   };
-  return <div className="desktop">
-    <div className="wallpaper" aria-hidden="true"><div className="cloud cloud-one"/><div className="cloud cloud-two"/><div className="hill hill-back"/><div className="hill hill-front"/></div>
-    <main className={`xp-window main-window ${maximized ? 'maximized' : ''} ${minimized ? 'minimized' : ''}`}>
-      <TitleBar title="Azurdle"><button aria-label="Minimize window" onClick={() => setMinimized(true)}>_</button><button aria-label={maximized ? 'Restore window' : 'Maximize window'} onClick={() => setMaximized(!maximized)}>□</button><button className="close-control" aria-label="Hide window" onClick={() => setMinimized(true)}>×</button></TitleBar>
+  return <div className="portal-app">
+    <header className="portal-header"><div className="portal-header-inner"><button className="brand" onClick={() => switchMode('daily')} aria-label="Azurdle home"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/><span>Azurdle</span></button><span className="header-caption">Azure service challenge</span></div></header>
+    <main className="game-panel">
       <MenuBar status={mode === 'daily' ? `Daily #${puzzleNumber(date)}` : 'Practice'} menus={[
         { label: 'Game', items: [
           { label: 'Daily', icon: 'globe', checked: mode === 'daily', action: () => switchMode('daily') },
@@ -177,15 +165,6 @@ export default function App() {
       ]}/>
       <div className="game-content"><GamePanel key={mode === 'daily' ? `daily-${date}` : practiceId} mode={mode} date={date} practiceId={practiceId} onNewPractice={newPractice} onRecord={record}/></div>
     </main>
-    {minimized && <button className="restore-prompt xp-button" onClick={restore}><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/>Open Azurdle</button>}
-    <footer className="taskbar">
-      <div className="start-area" ref={startRef}>
-        <button className={`start-button ${startOpen ? 'pressed' : ''}`} onClick={() => setStartOpen(!startOpen)} aria-expanded={startOpen} aria-controls="start-menu"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/><span>start</span></button>
-        {startOpen && <div id="start-menu" className="start-menu"><button onClick={restore}><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/>Azurdle</button></div>}
-      </div>
-      <button className={`task-button ${minimized ? '' : 'active'}`} onClick={() => setMinimized(!minimized)}><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt=""/><span>Azurdle</span></button>
-      <div className="system-tray"><time dateTime={now.toISOString()}>{now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</time></div>
-    </footer>
     {dialog && <Modal title={dialogs[dialog].title} wide={dialog === 'directory'} onClose={() => setDialog(null)}>{dialogs[dialog].body}</Modal>}
   </div>;
 }

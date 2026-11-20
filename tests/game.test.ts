@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { byId, clueNames, clueText, dailyAnswer, EPOCH, DAY, getStats, isFinished, isWon, makeAttempt, readGame, readRecords, searchServices, services, shareText, utcDate } from '../src/game';
+import { byId, clueNames, clueText, dailyAnswer, EPOCH, DAY, getStats, isFinished, isWon, makeAttempt, readGame, readRecords, resultTiles, searchServices, services, shareText, utcDate } from '../src/game';
 import pool from '../src/data/daily-pool.json' with { type: 'json' };
 
 test('daily schedule is UTC-based, deterministic, and does not repeat within a cycle', () => {
@@ -70,9 +70,13 @@ test('clues progress to the complete published description and share text is spo
   assert.equal(clueText(answer, 4), answer.description);
   assert.ok(clueText(answer, 3).length < answer.description.length + 2);
   const text = shareText({ answerId: answer.id, attempts: [{ id: null }, { id: answer.id }] }, 'daily', '2026-11-20', 'https://example.com/azurdle/');
-  assert.ok(text.includes('⬜🟩'));
+  assert.equal(text.split('\n')[1], '⬜🟩⬛⬛⬛');
   assert.ok(text.includes('2/5'));
   assert.ok(!text.includes(answer.name));
+  const mixed = { answerId: answer.id, attempts: [{ id: 'batch' }, { id: null }, { id: answer.id }] };
+  assert.deepEqual(resultTiles(mixed).map((tile) => tile.state), ['wrong', 'skipped', 'correct', 'unused', 'unused']);
+  const loss = { answerId: answer.id, attempts: Array.from({ length: 5 }, () => ({ id: null })) };
+  assert.ok(shareText(loss, 'daily', '2026-11-20', 'https://example.com').includes('X/5\n⬜⬜⬜⬜⬜'));
 });
 
 test('streaks respect missed days, losses, and unfinished today; duplicate records are idempotent', () => {

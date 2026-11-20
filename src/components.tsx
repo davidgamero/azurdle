@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState, type ReactNode, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type KeyboardEvent } from 'react';
 import { searchServices, type Service } from './game';
 
-export function PixelIcon({ kind, size = 32 }: { kind: 'computer' | 'folder' | 'help' | 'stats' | 'globe' | 'play'; size?: number }) {
-  return <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className={`pixel-icon ${kind}`}>
-    {kind === 'computer' && <><path fill="#d5d7db" stroke="#4b566c" d="M3 3h25v19H3zM11 23h10v4H11zM5 27h22v3H5z"/><path fill="#124ab3" d="M6 6h19v13H6z"/><path fill="#7bc4f3" d="m7 7 17 1-17 9z"/><path stroke="white" d="M4 4h23M4 4v17"/><path fill="#50ce4b" d="M24 20h2v1h-2z"/></>}
-    {kind === 'folder' && <><path fill="#e6ac37" stroke="#95652b" d="M2 7h12l3 4h13v17H2z"/><path fill="#ffda74" stroke="#b8872c" d="M2 12h28l-3 16H2z"/><path stroke="#fff3b7" d="M4 14h23"/></>}
-    {kind === 'help' && <><circle cx="16" cy="16" r="13" fill="#2877d7" stroke="#12458b"/><path fill="#7dbaff" d="M6 12a11 11 0 0 1 19-5C15 4 11 10 6 12"/><text x="16" y="24" textAnchor="middle" fill="white" fontSize="25" fontWeight="bold" fontFamily="Tahoma">?</text></>}
-    {kind === 'stats' && <><path fill="#f8fafc" stroke="#777" d="M4 3h23v26H4z"/><path fill="#65af3f" stroke="#3c7822" d="M8 18h4v8H8z"/><path fill="#62a7ed" stroke="#3267ac" d="M14 12h4v14h-4z"/><path fill="#f3bb46" stroke="#b3832a" d="M20 7h4v19h-4z"/></>}
-    {kind === 'globe' && <><circle cx="16" cy="16" r="13" fill="#388ce0" stroke="#235ba3"/><path fill="#8ac85d" d="m7 6 8-2 2 5-6 4-4-1zm11 8 8-4 3 8-8 9-5-7zM5 17l7 2 2 8-6-3z"/><ellipse cx="16" cy="16" rx="8" ry="13" fill="none" stroke="#ffffff60"/><path stroke="#ffffff60" d="M3 16h26M6 8h20M6 24h20"/></>}
-    {kind === 'play' && <><circle cx="16" cy="16" r="13" fill="#63aa38" stroke="#356a21"/><path fill="#a4da71" d="M6 12a11 11 0 0 1 19-5C15 4 11 10 6 12"/><path fill="white" stroke="#3f7a20" d="m12 8 13 8-13 8z"/></>}
+export function PortalIcon({ kind, size = 24 }: { kind: 'computer' | 'folder' | 'help' | 'stats' | 'globe' | 'play'; size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {kind === 'computer' && <><rect x="3" y="4" width="18" height="13" rx="1"/><path d="M12 17v4m-4 0h8"/></>}
+    {kind === 'folder' && <path d="M3 6h7l2 3h9v11H3V6z"/>}
+    {kind === 'help' && <><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 3h.01"/></>}
+    {kind === 'stats' && <><path d="M4 3v18h17M8 16v-5m5 5V6m5 10V9"/></>}
+    {kind === 'globe' && <><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></>}
+    {kind === 'play' && <path d="m8 4 12 8-12 8V4z"/>}
   </svg>;
 }
 
@@ -16,11 +16,7 @@ export function ServiceIcon({ service, mystery = false }: { service: Service; my
   return <img className="service-icon" src={`${import.meta.env.BASE_URL}${service.icon}`} alt={mystery ? 'Mystery Azure service icon' : ''} draggable="false" />;
 }
 
-export function TitleBar({ title, children }: { title: string; children?: ReactNode }) {
-  return <div className="title-bar"><div className="title-bar-text"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />{title}</div><div className="window-controls">{children}</div></div>;
-}
-
-type MenuItem = { label: string; icon: Parameters<typeof PixelIcon>[0]['kind']; action: () => void; checked?: boolean; divider?: boolean };
+type MenuItem = { label: string; icon: Parameters<typeof PortalIcon>[0]['kind']; action: () => void; checked?: boolean; divider?: boolean };
 export function MenuBar({ menus, status }: { menus: { label: string; items: MenuItem[] }[]; status: string }) {
   const [open, setOpen] = useState<number | null>(null);
   const [focused, setFocused] = useState(0);
@@ -46,18 +42,18 @@ export function MenuBar({ menus, status }: { menus: { label: string; items: Menu
   return <nav ref={ref} className="menu-bar" aria-label="Application menu" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) close(); }}>
     <div role="menubar" aria-label="Azurdle menus" className="menu-bar-items">
       {menus.map((menu, index) => <div className="menu-group" key={menu.label}>
-        <button ref={(element) => { triggers.current[index] = element; }} role="menuitem" aria-haspopup="menu" aria-expanded={open === index} aria-controls={`xp-menu-${index}`} tabIndex={focused === index ? 0 : -1} className={`menu-trigger ${open === index ? 'active' : ''}`} onFocus={() => setFocused(index)} onClick={() => { setOpen(open === index ? null : index); setItemIndex(null); }} onPointerEnter={() => { if (open !== null && open !== index) { setOpen(index); setItemIndex(null); } }} onKeyDown={(event) => {
+        <button ref={(element) => { triggers.current[index] = element; }} role="menuitem" aria-haspopup="menu" aria-expanded={open === index} aria-controls={`portal-menu-${index}`} tabIndex={focused === index ? 0 : -1} className={`menu-trigger ${open === index ? 'active' : ''}`} onFocus={() => setFocused(index)} onClick={() => { setOpen(open === index ? null : index); setItemIndex(null); }} onPointerEnter={() => { if (open !== null && open !== index) { setOpen(index); setItemIndex(null); } }} onKeyDown={(event) => {
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); setOpen(index); setItemIndex(event.key === 'ArrowUp' ? menu.items.length - 1 : 0); }
           if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); const next = (index + (event.key === 'ArrowRight' ? 1 : -1) + menus.length) % menus.length; setFocused(next); triggers.current[next]?.focus(); if (open !== null) { setOpen(next); setItemIndex(null); } }
           if (event.key === 'Escape') close(true);
-        }}>{menu.label}</button>
-        {open === index && <div role="menu" aria-label={menu.label} id={`xp-menu-${index}`} className="xp-menu" onKeyDown={(event) => {
+        }}>{menu.label}<span className="menu-chevron" aria-hidden="true">⌄</span></button>
+        {open === index && <div role="menu" aria-label={menu.label} id={`portal-menu-${index}`} className="portal-menu" onKeyDown={(event) => {
           const current = Number((event.target as HTMLElement).dataset.item ?? 0);
           if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) { event.preventDefault(); setItemIndex(event.key === 'Home' ? 0 : event.key === 'End' ? menu.items.length - 1 : (current + (event.key === 'ArrowDown' ? 1 : -1) + menu.items.length) % menu.items.length); }
           if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') { event.preventDefault(); moveMenu(index + (event.key === 'ArrowRight' ? 1 : -1)); }
           if (event.key === 'Escape') { event.preventDefault(); close(true); }
         }}>
-          {menu.items.map((item, itemNumber) => <button key={item.label} role={item.checked === undefined ? 'menuitem' : 'menuitemradio'} aria-checked={item.checked} tabIndex={-1} data-menu={index} data-item={itemNumber} className={item.divider ? 'menu-divider' : ''} onClick={() => { close(true); item.action(); }}><PixelIcon kind={item.icon} size={25}/><span>{item.label}</span>{item.checked && <span className="menu-check" aria-hidden="true">✓</span>}</button>)}
+          {menu.items.map((item, itemNumber) => <button key={item.label} role={item.checked === undefined ? 'menuitem' : 'menuitemradio'} aria-checked={item.checked} tabIndex={-1} data-menu={index} data-item={itemNumber} className={item.divider ? 'menu-divider' : ''} onClick={() => { close(true); item.action(); }}><PortalIcon kind={item.icon} size={21}/><span>{item.label}</span>{item.checked && <span className="menu-check" aria-hidden="true">✓</span>}</button>)}
         </div>}
       </div>)}
     </div>
@@ -67,11 +63,12 @@ export function MenuBar({ menus, status }: { menus: { label: string; items: Menu
 
 export function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
-  return <dialog ref={ref} className={`xp-window modal ${wide ? 'wide' : ''}`} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <TitleBar title={title}><button className="close-control" onClick={onClose} aria-label="Close dialog">×</button></TitleBar>
+  return <dialog ref={ref} aria-labelledby={titleId} className={`modal ${wide ? 'wide' : ''}`} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="dialog-header"><h2 id={titleId}>{title}</h2><button className="close-control" onClick={onClose} aria-label="Close dialog">×</button></div>
     <div className="modal-body">{children}</div>
-    <div className="modal-footer"><button className="xp-button" onClick={onClose}>OK</button></div>
+    <div className="modal-footer"><button className="portal-button primary" onClick={onClose}>OK</button></div>
   </dialog>;
 }
 
@@ -110,7 +107,7 @@ export function GuessInput({ excluded, onGuess, onSkip, lastAttempt }: { exclude
         </ul>}
       </div>
     </div>
-    <div className="game-actions"><button type="submit" className="xp-button primary">Guess <span aria-hidden="true">↵</span></button><button type="button" className="xp-button" onClick={onSkip} title={lastAttempt ? 'Use the final attempt and reveal the answer' : 'Skip this attempt to unlock a clue'}>{lastAttempt ? 'Reveal answer' : 'Next clue'} <span aria-hidden="true">→</span></button></div>
+    <div className="game-actions"><button type="submit" className="portal-button primary">Guess <span aria-hidden="true">↵</span></button><button type="button" className="portal-button" onClick={onSkip} title={lastAttempt ? 'Use the final attempt and reveal the answer' : 'Skip this attempt to unlock a clue'}>{lastAttempt ? 'Reveal answer' : 'Next clue'} <span aria-hidden="true">→</span></button></div>
     <div id="search-hint" className={error ? 'input-hint error' : 'sr-only'} aria-live="polite">{error || 'Search by name or acronym. Arrow keys to browse, Enter to select. Next clue uses an attempt.'}</div>
   </form>;
 }

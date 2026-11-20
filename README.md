@@ -1,10 +1,10 @@
 # Azurdle ☁
 
-**One Azure service. Five clues. A little Windows XP nostalgia.**
+**One Azure service. Five clues. A daily cloud challenge.**
 
 [Play Azurdle](https://davidgamero.github.io/azurdle/)
 
-A daily Azure-service guessing game in a compact XP-inspired window.
+A daily Azure-service guessing game with a compact Azure Portal-inspired interface.
 Built with React, TypeScript, and Vite. Runs entirely on static GitHub Pages:
 no backend, account, API keys, or runtime requests to Microsoft.
 
@@ -15,13 +15,16 @@ no backend, account, API keys, or runtime requests to Microsoft.
    press **Guess**. Search results are text-only, with keyboard navigation.
 3. Each wrong guess or **Next clue** consumes one of five attempts and reveals a clue:
    **icon → categories → initials → description preview → full description**.
-4. Share a spoiler-free result, or keep learning in unlimited practice mode.
+4. Each hint has its own row, with future hints grayed out. Your guess appears
+   beneath the hint used, including skipped attempts.
+5. Copy a spoiler-free five-tile result grid, or keep learning in unlimited
+   practice mode. 🟥 incorrect · ⬜ skipped · 🟩 correct · ⬛ unused.
 
-Use the XP menus: **Game** for daily/practice, **View** for statistics and the
+Use the command-bar menus: **Game** for daily/practice, **View** for statistics and the
 service directory, and **Help** for instructions and credits. Menus support
 arrow keys, Enter, and Escape. The main screen keeps only the icon, clues,
 search, and large **Guess / Next clue** buttons.
-The taskbar hides on screens 700px tall or shorter to leave more room to play.
+Short screens use tighter spacing to keep the primary controls in reach.
 
 The daily service is the same for everyone and changes at **00:00 UTC**.
 Daily progress, stats, and practice progress are saved in browser local storage.
@@ -49,7 +52,7 @@ npm run preview
 
 Browser tests cover keyboard search, wins/losses, progressive clues, result
 sharing, reloading, stats, UTC rollover, unavailable storage, directory filters,
-window controls, and keyboard-accessible XP menus. Service icons are bundled
+short-screen layouts, and keyboard-accessible portal menus. Service icons are bundled
 locally; the interface uses system fonts.
 
 ## Catalog and scraper
@@ -64,7 +67,7 @@ than an entire product page.
 **180 products have matched official icons** from the architecture icon pack or
 Microsoft's documentation hub. Products without matched icons are still
 searchable, but cannot be puzzle answers. Search results never show icons;
-icons appear only as the puzzle clue and beside submitted guesses.
+the mystery icon appears only as the first puzzle clue.
 This catalog reflects Microsoft's published directory, including related
 developer products. It is not a list of every Azure resource-provider type.
 
