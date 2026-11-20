@@ -15,8 +15,8 @@ no backend, account, API keys, or runtime requests to Microsoft.
    press **Guess**. Search results are text-only, with keyboard navigation.
 3. Each wrong guess or **Next clue** consumes one of five attempts and reveals a clue:
    **icon → categories → initials → description preview → full description**.
-4. Each hint has its own row, with future hints grayed out. Your guess appears
-   beneath the hint used, including skipped attempts.
+4. Each hint has its own row, with future hints grayed out. Your numbered guess
+   and its service icon appear beneath the hint used. Skips are numbered too.
 5. Copy a spoiler-free five-tile result grid, or keep learning in unlimited
    practice mode. 🟥 incorrect · ⬜ skipped · 🟩 correct · ⬛ unused.
 
@@ -67,7 +67,7 @@ than an entire product page.
 **180 products have matched official icons** from the architecture icon pack or
 Microsoft's documentation hub. Products without matched icons are still
 searchable, but cannot be puzzle answers. Search results never show icons;
-the mystery icon appears only as the first puzzle clue.
+icons appear in the first puzzle clue and beside submitted guesses.
 This catalog reflects Microsoft's published directory, including related
 developer products. It is not a list of every Azure resource-provider type.
 

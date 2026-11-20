@@ -66,6 +66,9 @@ svg { vertical-align: middle; flex-shrink: 0; }
 .icon-stage .service-icon { width: 80px; height: 80px; object-fit: contain; }
 .hint-content .initials-clue { font: 18px/1.6 Consolas, monospace; color: #0067b8; overflow-wrap: anywhere; }
 .hint-guess { display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 41px; border-top: 1px solid #edf0f3; font-size: 13px; line-height: 1.5; background: #fafbfc; }
+.guess-label { white-space: nowrap; flex-shrink: 0; color: var(--muted); }
+.hint-guess .service-icon { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+.guess-name { min-width: 0; overflow-wrap: anywhere; }
 .hint-guess.wrong { color: #a4262c; }
 .hint-guess.correct { color: #356423; background: #f0f7ed; }
 .hint-guess.skipped { color: #6a7580; }

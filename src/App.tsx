@@ -90,7 +90,9 @@ function GamePanel({ mode, date, practiceId, onNewPractice, onRecord }: { mode: 
           <div className="hint-label"><span className="hint-number" aria-hidden="true">{index + 1}</span><h2>{name}</h2>{!unlocked && <span className="sr-only">Locked</span>}</div>
           {unlocked && <div className="hint-content">{index === 0 ? <div className="icon-stage"><ServiceIcon service={answer} mystery={!finished}/></div> : <p className={index === 2 ? 'initials-clue' : ''}>{clueText(answer, index)}</p>}</div>}
           {guess && <div className={`hint-guess ${correct ? 'correct' : guess.id ? 'wrong' : 'skipped'}`}>
-            <span className="sr-only">Your guess: </span><span>{guess.id ? byId.get(guess.id)!.name : 'Skipped'}</span>
+            <span className="guess-label">Guess {index + 1}:</span>
+            {guess.id && <ServiceIcon service={byId.get(guess.id)!}/>}
+            <span className="guess-name">{guess.id ? byId.get(guess.id)!.name : 'Skipped'}</span>
             <span className="guess-result" aria-label={correct ? 'Correct' : guess.id ? 'Not quite' : 'Skipped attempt'}>{correct ? '✓' : guess.id ? '×' : '–'}</span>
           </div>}
         </section>;
