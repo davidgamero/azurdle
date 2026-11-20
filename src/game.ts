@@ -174,7 +174,7 @@ export function resultTiles(game: Game) {
     const { state } = guessFeedback(game.answerId, attempt.id);
     const tile = {
       correct: { emoji: '🟩', label: 'Correct' },
-      close: { emoji: '🟨', label: 'Close — shared category' },
+      close: { emoji: '🟨', label: 'Right category' },
       skipped: { emoji: '⬜', label: 'Skipped' },
       wrong: { emoji: '🟥', label: 'Incorrect' },
     }[state];

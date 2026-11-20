@@ -25,13 +25,13 @@ The welcome is remembered in this browser.
 4. Each hint has its own row, with future hints grayed out. Your numbered guess
    and its service icon appear beneath the hint used. Skips are numbered too.
 5. Copy a spoiler-free five-tile result grid, or keep learning in unlimited
-   practice mode. 🟥 incorrect · 🟨 close · ⬜ skipped · 🟩 correct · ⬛ unused.
+   practice mode. 🟥 incorrect · 🟨 right category · ⬜ skipped · 🟩 correct · ⬛ unused.
 
-**Close** means the guess shares at least one of Microsoft's published product
+**Right category** means the guess shares at least one of Microsoft's published product
 categories with the answer. The catalog contains 21 non-exclusive categories,
 including Compute, Containers, Networking, Storage, Databases, and Security.
 For example, Functions and Container Apps overlap in Compute and Containers.
-Close guesses consume an attempt and reveal the next hint; only the exact
+Category-matching guesses consume an attempt and reveal the next hint; only the exact
 service wins. Results and copied grids use the same classification.
 Sources: [Azure product categories](https://azure.microsoft.com/en-us/products/),
 [Compute](https://azure.microsoft.com/en-us/products/category/compute/), and

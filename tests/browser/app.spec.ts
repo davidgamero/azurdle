@@ -188,7 +188,7 @@ test('fuzzy matches highlight, tap submits once, and close guesses share yellow 
   await expect(page.getByLabel('4 attempts remaining', { exact: true })).toBeVisible();
   await expect(page.locator('.hint-guess')).toHaveCount(1);
   await expect(page.locator('.hint-guess')).toContainText('Azure Functions');
-  await expect(page.locator('.close-badge')).toHaveText('Close');
+  await expect(page.locator('.close-badge')).toHaveText('Right category');
   await search.fill(answer.name);
   await search.press('Enter');
   await expect(page.getByRole('region', { name: 'Game result' })).toContainText('Solved in 2/5');
